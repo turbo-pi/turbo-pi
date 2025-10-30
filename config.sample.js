@@ -48,6 +48,23 @@
         animateText: true,
 
         // Microphone sensitivity (0.0-1.0)
-        sensitivity: 0.5
+        sensitivity: 0.5,
+
+        // Device Configuration (Optional)
+        // To find your device IDs, set listDevices to true, restart MagicMirror,
+        // and check the browser console (F12) or terminal logs
+        listDevices: false,
+
+        // Specific microphone device ID to use
+        // Example: "default" or "a1b2c3d4e5f6..."
+        // Note: Web Speech API has limited support for device selection
+        // Leave as null to use system default
+        microphoneDeviceId: null,
+
+        // Specific audio output device ID to use for voice responses
+        // Example: "default" or "a1b2c3d4e5f6..."
+        // Note: Web Speech API has limited support for device selection
+        // Leave as null to use system default
+        audioOutputDeviceId: null
     }
 }

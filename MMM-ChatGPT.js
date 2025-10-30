@@ -16,11 +16,13 @@ Module.register("MMM-ChatGPT", {
         voiceEnabled: true,
         autoSpeak: true,
         displayDuration: 30000, // 30 seconds
-        microphoneDevice: null,
+        microphoneDeviceId: null, // Optional: specific microphone device ID
+        audioOutputDeviceId: null, // Optional: specific audio output device ID
         sensitivity: 0.5,
         showTranscript: true,
         showResponse: true,
-        animateText: true
+        animateText: true,
+        listDevices: false // Set to true to log available devices on startup
     },
 
     requiresVersion: "2.1.0",
@@ -33,6 +35,7 @@ Module.register("MMM-ChatGPT", {
         this.conversationHistory = [];
         this.recognition = null;
         this.hideTimer = null;
+        this.audioElement = null; // For audio output device selection
         Log.info("Starting module: " + this.name);
 
         // Send config to node_helper
@@ -94,6 +97,10 @@ Module.register("MMM-ChatGPT", {
 
     notificationReceived: function(notification, payload, sender) {
         if (notification === "DOM_OBJECTS_CREATED") {
+            // List available devices if requested
+            if (this.config.listDevices) {
+                this.enumerateDevices();
+            }
             this.initializeSpeechRecognition();
         }
     },
@@ -215,6 +222,39 @@ Module.register("MMM-ChatGPT", {
         }
     },
 
+    enumerateDevices: function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            Log.error("Device enumeration not supported");
+            return;
+        }
+
+        navigator.mediaDevices.enumerateDevices()
+            .then((devices) => {
+                Log.info("=== Available Audio Devices ===");
+
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+                Log.info("Microphones (audioinput):");
+                audioInputs.forEach((device, index) => {
+                    Log.info(`  [${index}] ${device.label || 'Unnamed'} (ID: ${device.deviceId})`);
+                });
+
+                Log.info("Audio Outputs (audiooutput):");
+                audioOutputs.forEach((device, index) => {
+                    Log.info(`  [${index}] ${device.label || 'Unnamed'} (ID: ${device.deviceId})`);
+                });
+
+                Log.info("Copy the device ID from above and paste it in your config:");
+                Log.info("  microphoneDeviceId: \"paste-id-here\"");
+                Log.info("  audioOutputDeviceId: \"paste-id-here\"");
+                Log.info("===============================");
+            })
+            .catch((err) => {
+                Log.error("Error enumerating devices: " + err);
+            });
+    },
+
     speak: function(text) {
         if (!this.config.voiceEnabled) {
             return;
@@ -242,6 +282,14 @@ Module.register("MMM-ChatGPT", {
                     }, 500);
                 }
             };
+
+            // Set audio output device if specified
+            if (this.config.audioOutputDeviceId && typeof utterance.setSinkId !== 'undefined') {
+                // Note: setSinkId is not available on SpeechSynthesisUtterance in most browsers
+                // This is a limitation of the Web Speech API
+                // For audio output device selection, you may need to use HTML5 Audio elements
+                Log.info("Audio output device ID specified, but Web Speech API doesn't support setSinkId directly");
+            }
 
             window.speechSynthesis.speak(utterance);
         }

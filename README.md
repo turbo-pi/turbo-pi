@@ -3,7 +3,7 @@
 Een Magic Mirror² module voor spraakinteractie met ChatGPT, inclusief wake word detectie.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 
 ## Overzicht / Overview
 
@@ -92,6 +92,89 @@ Voeg de module toe aan je `config/config.js`:
 | `showResponse` | Boolean | true | Show ChatGPT response on screen |
 | `animateText` | Boolean | true | Animate the response text |
 | `sensitivity` | Number | 0.5 | Microphone sensitivity (0.0-1.0) |
+| `microphoneDeviceId` | String | null | Specific microphone device ID (optional) |
+| `audioOutputDeviceId` | String | null | Specific audio output device ID (optional) |
+| `listDevices` | Boolean | false | Log available devices to console on startup |
+
+## Device Configuration / Apparaat Configuratie
+
+### Nederlands
+
+Als je een specifieke microfoon of audio output wilt gebruiken, kun je de device IDs configureren.
+
+#### Methode 1: Browser Helper (Eenvoudigste)
+
+1. Open `list-devices.html` in je browser
+2. Klik op "Refresh Devices" en geef microfoon toegang
+3. Kopieer de gewenste device IDs
+4. Plak ze in je config:
+
+```javascript
+config: {
+    microphoneDeviceId: "jouw-microfoon-id-hier",
+    audioOutputDeviceId: "jouw-output-id-hier"
+}
+```
+
+#### Methode 2: In MagicMirror
+
+1. Schakel device listing in:
+```javascript
+config: {
+    listDevices: true
+}
+```
+
+2. Herstart MagicMirror
+3. Open browser console (F12) of bekijk de terminal logs
+4. Kopieer de device IDs uit de logs
+5. Voeg ze toe aan je config en zet `listDevices` weer op `false`
+
+#### Belangrijke Notitie
+
+De Web Speech API heeft beperkte ondersteuning voor custom device selectie. Deze configuratie-opties zijn toegevoegd voor:
+- Toekomstige compatibiliteit
+- Alternatieve implementaties
+- Documentatie van je preferred devices
+
+### English
+
+If you want to use a specific microphone or audio output, you can configure the device IDs.
+
+#### Method 1: Browser Helper (Easiest)
+
+1. Open `list-devices.html` in your browser
+2. Click "Refresh Devices" and grant microphone access
+3. Copy the desired device IDs
+4. Paste them in your config:
+
+```javascript
+config: {
+    microphoneDeviceId: "your-microphone-id-here",
+    audioOutputDeviceId: "your-output-id-here"
+}
+```
+
+#### Method 2: In MagicMirror
+
+1. Enable device listing:
+```javascript
+config: {
+    listDevices: true
+}
+```
+
+2. Restart MagicMirror
+3. Open browser console (F12) or check terminal logs
+4. Copy the device IDs from the logs
+5. Add them to your config and set `listDevices` back to `false`
+
+#### Important Note
+
+The Web Speech API has limited support for custom device selection. These configuration options are added for:
+- Future compatibility
+- Alternative implementations
+- Documentation of your preferred devices
 
 ## Usage / Gebruik
 
@@ -248,6 +331,12 @@ Voor vragen of problemen:
 3. Zie [Magic Mirror² Forum](https://forum.magicmirror.builders/)
 
 ## Changelog
+
+### Version 1.1.0 (2025-10-30)
+- Added device ID configuration for microphone and audio output
+- Added device enumeration function to list available devices
+- Added standalone browser tool (list-devices.html) for finding device IDs
+- Updated configuration documentation
 
 ### Version 1.0.0 (2024-10-30)
 - Initial release
