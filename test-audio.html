@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMM-ChatGPT Audio Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .device-list {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .listening {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        #transcript {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            min-height: 50px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 MMM-ChatGPT Audio Diagnostics</h1>
+    <p>Gebruik deze pagina om te testen of je audio setup correct werkt.</p>
+
+    <!-- Test 1: Browser Check -->
+    <div class="test-section">
+        <h2>1. Browser Compatibility</h2>
+        <div id="browser-status"></div>
+    </div>
+
+    <!-- Test 2: Audio Devices -->
+    <div class="test-section">
+        <h2>2. Audio Devices</h2>
+        <button onclick="listDevices()">Toon Audio Devices</button>
+        <div id="devices-status"></div>
+        <div id="devices-list" class="device-list" style="display:none;"></div>
+    </div>
+
+    <!-- Test 3: Microphone Access -->
+    <div class="test-section">
+        <h2>3. Microfoon Toegang</h2>
+        <button onclick="testMicrophone()">Test Microfoon</button>
+        <div id="mic-status"></div>
+    </div>
+
+    <!-- Test 4: Speech Recognition -->
+    <div class="test-section">
+        <h2>4. Spraakherkenning (Wake Word Test)</h2>
+        <button id="start-recognition" onclick="testRecognition()">Start Luisteren</button>
+        <button id="stop-recognition" onclick="stopRecognition()" disabled>Stop Luisteren</button>
+        <div id="recognition-status"></div>
+        <div id="listening-indicator" class="listening" style="display:none;">
+            🎤 LUISTERT... Zeg "hey mirror"
+        </div>
+        <div id="transcript"></div>
+    </div>
+
+    <!-- Test 5: Text-to-Speech -->
+    <div class="test-section">
+        <h2>5. Text-to-Speech (Audio Output)</h2>
+        <button onclick="testTTS()">Test Nederlandse Stem</button>
+        <button onclick="testTTSEnglish()">Test Engelse Stem</button>
+        <div id="tts-status"></div>
+        <div id="voices-list" class="device-list" style="display:none;"></div>
+    </div>
+
+    <!-- Test 6: Complete Wake Word Test -->
+    <div class="test-section">
+        <h2>6. Volledige Wake Word Test</h2>
+        <p>Dit test de complete flow zoals in de Magic Mirror module.</p>
+        <button onclick="testWakeWord()">Start Wake Word Detectie</button>
+        <button onclick="stopWakeWord()">Stop</button>
+        <div id="wakeword-status"></div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let wakeWordRecognition = null;
+
+        // Test 1: Browser Check
+        function checkBrowser() {
+            const status = document.getElementById('browser-status');
+            let html = '<div class="status info">';
+            html += '<strong>Browser:</strong> ' + navigator.userAgent + '<br><br>';
+
+            const features = {
+                'Web Speech API (Speech Recognition)': 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+                'Speech Synthesis': 'speechSynthesis' in window,
+                'MediaDevices API': 'mediaDevices' in navigator,
+                'getUserMedia': navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices
+            };
+
+            for (const [feature, supported] of Object.entries(features)) {
+                html += supported
+                    ? '✅ ' + feature + '<br>'
+                    : '❌ ' + feature + ' (NIET ONDERSTEUND!)<br>';
+            }
+
+            html += '</div>';
+            status.innerHTML = html;
+        }
+
+        // Test 2: List Audio Devices
+        async function listDevices() {
+            const statusDiv = document.getElementById('devices-status');
+            const listDiv = document.getElementById('devices-list');
+
+            try {
+                // Request permissions first
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+                let html = '<h3>🎤 Microfoons (' + audioInputs.length + '):</h3>';
+                audioInputs.forEach((device, index) => {
+                    html += '<div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">';
+                    html += '<strong>' + (index + 1) + '.</strong> ' + (device.label || 'Microfoon ' + (index + 1)) + '<br>';
+                    html += '<small style="color: #666;">ID: ' + device.deviceId + '</small>';
+                    html += '</div>';
+                });
+
+                html += '<h3>🔊 Speakers (' + audioOutputs.length + '):</h3>';
+                audioOutputs.forEach((device, index) => {
+                    html += '<div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">';
+                    html += '<strong>' + (index + 1) + '.</strong> ' + (device.label || 'Speaker ' + (index + 1)) + '<br>';
+                    html += '<small style="color: #666;">ID: ' + device.deviceId + '</small>';
+                    html += '</div>';
+                });
+
+                listDiv.innerHTML = html;
+                listDiv.style.display = 'block';
+
+                statusDiv.innerHTML = '<div class="status success">✅ Gevonden: ' + audioInputs.length +
+                                    ' microfoon(s), ' + audioOutputs.length + ' speaker(s)</div>';
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Fout: ' + error.message +
+                                    '<br><br>Zorg ervoor dat je de browser toestemming geeft voor microfoontoegang!</div>';
+                console.error('Error listing devices:', error);
+            }
+        }
+
+        // Test 3: Microphone Access
+        async function testMicrophone() {
+            const statusDiv = document.getElementById('mic-status');
+            statusDiv.innerHTML = '<div class="status info">⏳ Vraagt toegang tot microfoon...</div>';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+
+                statusDiv.innerHTML = '<div class="status success">✅ Microfoon toegang verleend!<br>' +
+                                    'Tracks: ' + stream.getAudioTracks().length + '<br>' +
+                                    'Status: ' + stream.getAudioTracks()[0].readyState + '</div>';
+
+                // Stop the stream
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Geen toegang tot microfoon!<br><br>' +
+                                    '<strong>Fout:</strong> ' + error.name + '<br>' +
+                                    '<strong>Bericht:</strong> ' + error.message + '<br><br>' +
+                                    '<strong>Mogelijke oplossingen:</strong><br>' +
+                                    '1. Geef de browser toestemming voor microfoontoegang<br>' +
+                                    '2. Controleer of de microfoon is aangesloten<br>' +
+                                    '3. Test met Chrome/Chromium browser<br>' +
+                                    '4. Gebruik HTTPS of localhost</div>';
+                console.error('Microphone error:', error);
+            }
+        }
+
+        // Test 4: Speech Recognition
+        function testRecognition() {
+            const statusDiv = document.getElementById('recognition-status');
+            const transcriptDiv = document.getElementById('transcript');
+            const listeningDiv = document.getElementById('listening-indicator');
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                statusDiv.innerHTML = '<div class="status error">❌ Speech Recognition wordt niet ondersteund in deze browser!<br>' +
+                                    'Gebruik Chrome/Chromium!</div>';
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'nl-NL';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = function() {
+                statusDiv.innerHTML = '<div class="status success">✅ Spraakherkenning gestart!</div>';
+                listeningDiv.style.display = 'block';
+                document.getElementById('start-recognition').disabled = true;
+                document.getElementById('stop-recognition').disabled = false;
+            };
+
+            recognition.onresult = function(event) {
+                let interim = '';
+                let final = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        final += transcript;
+                    } else {
+                        interim += transcript;
+                    }
+                }
+
+                transcriptDiv.innerHTML = '<strong>Je zei:</strong> ' + (final || interim);
+
+                // Check for wake word
+                const text = (final || interim).toLowerCase();
+                if (text.includes('hey mirror') || text.includes('hé mirror')) {
+                    transcriptDiv.innerHTML += '<br><br>🎉 <strong>WAKE WORD GEDETECTEERD!</strong>';
+                    statusDiv.innerHTML = '<div class="status success">✅ Wake word "hey mirror" gedetecteerd!</div>';
+                }
+            };
+
+            recognition.onerror = function(event) {
+                statusDiv.innerHTML = '<div class="status error">❌ Fout: ' + event.error + '<br>' +
+                                    'Mogelijk oorzaken:<br>' +
+                                    '- Geen microfoon toegang<br>' +
+                                    '- Microfoon wordt al gebruikt<br>' +
+                                    '- Browser heeft geen toestemming</div>';
+                listeningDiv.style.display = 'none';
+                document.getElementById('start-recognition').disabled = false;
+                document.getElementById('stop-recognition').disabled = true;
+                console.error('Speech recognition error:', event);
+            };
+
+            recognition.onend = function() {
+                listeningDiv.style.display = 'none';
+                document.getElementById('start-recognition').disabled = false;
+                document.getElementById('stop-recognition').disabled = true;
+            };
+
+            try {
+                recognition.start();
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Kon spraakherkenning niet starten: ' + error.message + '</div>';
+                console.error('Recognition start error:', error);
+            }
+        }
+
+        function stopRecognition() {
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        // Test 5: Text-to-Speech
+        function testTTS() {
+            const statusDiv = document.getElementById('tts-status');
+            const voicesDiv = document.getElementById('voices-list');
+
+            if (!('speechSynthesis' in window)) {
+                statusDiv.innerHTML = '<div class="status error">❌ Text-to-Speech wordt niet ondersteund!</div>';
+                return;
+            }
+
+            // Load voices
+            let voices = speechSynthesis.getVoices();
+            if (voices.length === 0) {
+                speechSynthesis.onvoiceschanged = function() {
+                    voices = speechSynthesis.getVoices();
+                    showVoices(voices);
+                    speakDutch(voices);
+                };
+            } else {
+                showVoices(voices);
+                speakDutch(voices);
+            }
+
+            function showVoices(voices) {
+                let html = '<h3>Beschikbare stemmen:</h3>';
+                voices.forEach((voice, index) => {
+                    html += '<div style="margin: 5px 0;">';
+                    html += (index + 1) + '. <strong>' + voice.name + '</strong> (' + voice.lang + ')';
+                    if (voice.lang.startsWith('nl')) {
+                        html += ' <span style="color: green;">← NEDERLANDS</span>';
+                    }
+                    html += '</div>';
+                });
+                voicesDiv.innerHTML = html;
+                voicesDiv.style.display = 'block';
+            }
+
+            function speakDutch(voices) {
+                const utterance = new SpeechSynthesisUtterance('Hallo, ik ben je Magic Mirror assistent. De audio werkt!');
+                utterance.lang = 'nl-NL';
+
+                // Try to find Dutch voice
+                const dutchVoice = voices.find(v => v.lang === 'nl-NL' || v.lang === 'nl');
+                if (dutchVoice) {
+                    utterance.voice = dutchVoice;
+                    statusDiv.innerHTML = '<div class="status success">✅ Spreekt met Nederlandse stem: ' + dutchVoice.name + '</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="status info">ℹ️ Geen Nederlandse stem gevonden, gebruikt standaard stem</div>';
+                }
+
+                utterance.onend = function() {
+                    statusDiv.innerHTML += '<div class="status success">✅ Audio output test voltooid!</div>';
+                };
+
+                utterance.onerror = function(event) {
+                    statusDiv.innerHTML = '<div class="status error">❌ Fout bij audio output: ' + event.error + '</div>';
+                };
+
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function testTTSEnglish() {
+            const statusDiv = document.getElementById('tts-status');
+
+            const utterance = new SpeechSynthesisUtterance('Hello, I am your Magic Mirror assistant. Audio is working!');
+            utterance.lang = 'en-US';
+
+            utterance.onend = function() {
+                statusDiv.innerHTML = '<div class="status success">✅ English audio output test completed!</div>';
+            };
+
+            utterance.onerror = function(event) {
+                statusDiv.innerHTML = '<div class="status error">❌ Audio output error: ' + event.error + '</div>';
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        // Test 6: Complete Wake Word Test
+        function testWakeWord() {
+            const statusDiv = document.getElementById('wakeword-status');
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                statusDiv.innerHTML = '<div class="status error">❌ Speech Recognition niet ondersteund!</div>';
+                return;
+            }
+
+            wakeWordRecognition = new SpeechRecognition();
+            wakeWordRecognition.lang = 'nl-NL';
+            wakeWordRecognition.continuous = true;
+            wakeWordRecognition.interimResults = true;
+
+            let wakeWordDetected = false;
+            let questionRecognition = null;
+
+            wakeWordRecognition.onstart = function() {
+                statusDiv.innerHTML = '<div class="status info">🎤 Luistert naar "hey mirror"...</div>';
+            };
+
+            wakeWordRecognition.onresult = function(event) {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript.toLowerCase();
+
+                    if (!wakeWordDetected && (transcript.includes('hey mirror') || transcript.includes('hé mirror'))) {
+                        wakeWordDetected = true;
+                        statusDiv.innerHTML = '<div class="status success">✅ Wake word gedetecteerd! Zeg nu je vraag...</div>';
+
+                        // Speak confirmation
+                        const confirm = new SpeechSynthesisUtterance('Ja?');
+                        confirm.lang = 'nl-NL';
+                        speechSynthesis.speak(confirm);
+
+                        // Wait for question
+                        wakeWordRecognition.stop();
+
+                        setTimeout(() => {
+                            questionRecognition = new SpeechRecognition();
+                            questionRecognition.lang = 'nl-NL';
+                            questionRecognition.continuous = false;
+
+                            questionRecognition.onresult = function(e) {
+                                const question = e.results[0][0].transcript;
+                                statusDiv.innerHTML = '<div class="status success">✅ Vraag ontvangen: "' + question + '"<br>' +
+                                                    'In de echte module wordt dit nu naar ChatGPT gestuurd.</div>';
+
+                                // Simulate response
+                                const response = new SpeechSynthesisUtterance('Ik heb je vraag ontvangen: ' + question);
+                                response.lang = 'nl-NL';
+                                speechSynthesis.speak(response);
+
+                                wakeWordDetected = false;
+                            };
+
+                            questionRecognition.start();
+                        }, 1000);
+                    }
+                }
+            };
+
+            wakeWordRecognition.onerror = function(event) {
+                statusDiv.innerHTML = '<div class="status error">❌ Fout: ' + event.error + '</div>';
+            };
+
+            wakeWordRecognition.start();
+        }
+
+        function stopWakeWord() {
+            if (wakeWordRecognition) {
+                wakeWordRecognition.stop();
+            }
+            document.getElementById('wakeword-status').innerHTML = '<div class="status info">Gestopt</div>';
+        }
+
+        // Run browser check on load
+        window.onload = function() {
+            checkBrowser();
+        };
+    </script>
+</body>
+</html>
