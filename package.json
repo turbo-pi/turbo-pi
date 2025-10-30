@@ -1,6 +1,6 @@
 {
   "name": "MMM-ChatGPT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A MagicMirror² module for voice interaction with ChatGPT using wake word detection",
   "main": "MMM-ChatGPT.js",
   "author": "Claude",

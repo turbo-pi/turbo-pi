@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Device Finder - MMM-ChatGPT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .device-section {
+            margin: 20px 0;
+        }
+        .device-section h2 {
+            color: #555;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        .device-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .device-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .device-id {
+            font-family: 'Courier New', monospace;
+            background: #e8e8e8;
+            padding: 5px 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .copy-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            margin-top: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .copy-btn:hover {
+            background: #45a049;
+        }
+        .copy-btn:active {
+            background: #3d8b40;
+        }
+        .instructions {
+            background: #e7f3fe;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #721c24;
+        }
+        button#refresh {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+            margin: 10px 0;
+        }
+        button#refresh:hover {
+            background: #0b7dda;
+        }
+        .copied-notification {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 3px 10px;
+            margin-left: 10px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Audio Device Finder</h1>
+        <p>Use this tool to find the device IDs for your microphone and audio output devices for MMM-ChatGPT configuration.</p>
+
+        <div class="instructions">
+            <h3>📋 How to use:</h3>
+            <ol>
+                <li>Click the "Refresh Devices" button below</li>
+                <li>Grant permission to access your microphone when prompted</li>
+                <li>Find your desired device in the list below</li>
+                <li>Click "Copy ID" to copy the device ID</li>
+                <li>Paste the ID into your MMM-ChatGPT config.js file</li>
+            </ol>
+        </div>
+
+        <button id="refresh" onclick="listDevices()">🔄 Refresh Devices</button>
+
+        <div id="output"></div>
+
+        <div class="note">
+            <strong>⚠️ Note:</strong> The Web Speech API used by MMM-ChatGPT has limited support for custom device selection.
+            These device IDs are stored in your configuration for future compatibility and for alternative implementations
+            that may support device selection better.
+        </div>
+    </div>
+
+    <script>
+        async function listDevices() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Loading devices...</p>';
+
+            try {
+                // Request microphone permission first
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Now enumerate devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+                let html = '';
+
+                // Microphones
+                html += '<div class="device-section">';
+                html += '<h2>🎤 Microphones (Input Devices)</h2>';
+
+                if (audioInputs.length === 0) {
+                    html += '<p>No microphone devices found.</p>';
+                } else {
+                    audioInputs.forEach((device, index) => {
+                        html += '<div class="device-item">';
+                        html += `<div class="device-label">${index + 1}. ${device.label || 'Unnamed Microphone'}</div>`;
+                        html += `<div class="device-id">ID: ${device.deviceId}</div>`;
+                        html += `<button class="copy-btn" onclick="copyToClipboard('${device.deviceId}', this)">📋 Copy ID</button>`;
+                        html += '</div>';
+                    });
+                }
+                html += '</div>';
+
+                // Audio Outputs
+                html += '<div class="device-section">';
+                html += '<h2>🔊 Audio Outputs (Speaker/Headphone Devices)</h2>';
+
+                if (audioOutputs.length === 0) {
+                    html += '<p>No audio output devices found. This may be a browser limitation.</p>';
+                } else {
+                    audioOutputs.forEach((device, index) => {
+                        html += '<div class="device-item">';
+                        html += `<div class="device-label">${index + 1}. ${device.label || 'Unnamed Audio Output'}</div>`;
+                        html += `<div class="device-id">ID: ${device.deviceId}</div>`;
+                        html += `<button class="copy-btn" onclick="copyToClipboard('${device.deviceId}', this)">📋 Copy ID</button>`;
+                        html += '</div>';
+                    });
+                }
+                html += '</div>';
+
+                // Configuration example
+                html += '<div class="instructions">';
+                html += '<h3>🔧 Configuration Example:</h3>';
+                html += '<p>Add these lines to your MMM-ChatGPT config:</p>';
+                html += '<pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>';
+                html += 'config: {\n';
+                html += '    // ... other config options ...\n';
+                html += '    microphoneDeviceId: "paste-microphone-id-here",\n';
+                html += '    audioOutputDeviceId: "paste-output-id-here"\n';
+                html += '}';
+                html += '</code></pre>';
+                html += '</div>';
+
+                output.innerHTML = html;
+
+            } catch (error) {
+                output.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}<br><br>
+                        Make sure you grant permission to access the microphone when prompted.
+                    </div>
+                `;
+            }
+        }
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success notification
+                const notification = document.createElement('span');
+                notification.className = 'copied-notification';
+                notification.textContent = '✓ Copied!';
+                button.parentNode.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.remove();
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
+        // Auto-load devices on page load
+        window.addEventListener('load', () => {
+            // Show initial message
+            document.getElementById('output').innerHTML =
+                '<p style="text-align: center; color: #666;">Click "Refresh Devices" to get started</p>';
+        });
+    </script>
+</body>
+</html>
