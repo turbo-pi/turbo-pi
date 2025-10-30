@@ -16,11 +16,14 @@ Module.register("MMM-ChatGPT", {
         voiceEnabled: true,
         autoSpeak: true,
         displayDuration: 30000, // 30 seconds
-        microphoneDevice: null,
+        audioInputDeviceId: null, // Microphone device ID
+        audioOutputDeviceId: null, // Speaker device ID
+        voiceName: null, // Specific voice name for speech synthesis
         sensitivity: 0.5,
         showTranscript: true,
         showResponse: true,
-        animateText: true
+        animateText: true,
+        debugAudioDevices: false // Log available devices on start
     },
 
     requiresVersion: "2.1.0",
@@ -33,6 +36,7 @@ Module.register("MMM-ChatGPT", {
         this.conversationHistory = [];
         this.recognition = null;
         this.hideTimer = null;
+        this.availableVoices = [];
         Log.info("Starting module: " + this.name);
 
         // Send config to node_helper
@@ -94,7 +98,20 @@ Module.register("MMM-ChatGPT", {
 
     notificationReceived: function(notification, payload, sender) {
         if (notification === "DOM_OBJECTS_CREATED") {
-            this.initializeSpeechRecognition();
+            if (this.config.debugAudioDevices) {
+                this.logAudioDevices();
+            }
+            if (this.config.voiceEnabled) {
+                this.loadVoices();
+            }
+            // Initialize microphone first, then speech recognition
+            if (this.config.audioInputDeviceId) {
+                this.initializeMicrophone().then(() => {
+                    this.initializeSpeechRecognition();
+                });
+            } else {
+                this.initializeSpeechRecognition();
+            }
         }
     },
 
@@ -230,6 +247,20 @@ Module.register("MMM-ChatGPT", {
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
 
+            // Select specific voice if configured
+            if (this.config.voiceName && this.availableVoices) {
+                const voice = this.availableVoices.find(v =>
+                    v.name === this.config.voiceName ||
+                    v.name.includes(this.config.voiceName)
+                );
+                if (voice) {
+                    utterance.voice = voice;
+                    Log.info("Using voice: " + voice.name);
+                } else {
+                    Log.warn("Voice not found: " + this.config.voiceName);
+                }
+            }
+
             utterance.onend = () => {
                 // Restart recognition after speaking
                 if (this.recognition && !this.processing) {
@@ -245,6 +276,88 @@ Module.register("MMM-ChatGPT", {
 
             window.speechSynthesis.speak(utterance);
         }
+    },
+
+    loadVoices: function() {
+        if ('speechSynthesis' in window) {
+            this.availableVoices = window.speechSynthesis.getVoices();
+
+            if (this.config.debugAudioDevices) {
+                Log.info("Available voices:");
+                this.availableVoices.forEach(voice => {
+                    Log.info(`  - ${voice.name} (${voice.lang}) ${voice.default ? '[DEFAULT]' : ''}`);
+                });
+            }
+
+            // Chrome loads voices asynchronously
+            if (this.availableVoices.length === 0) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    this.availableVoices = window.speechSynthesis.getVoices();
+                    if (this.config.debugAudioDevices) {
+                        Log.info("Voices loaded:");
+                        this.availableVoices.forEach(voice => {
+                            Log.info(`  - ${voice.name} (${voice.lang}) ${voice.default ? '[DEFAULT]' : ''}`);
+                        });
+                    }
+                };
+            }
+        }
+    },
+
+    logAudioDevices: function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            Log.error("enumerateDevices not supported");
+            return;
+        }
+
+        Log.info("=== Available Audio Devices ===");
+
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+                Log.info("Audio Input Devices (Microphones):");
+                audioInputs.forEach((device, index) => {
+                    Log.info(`  [${index}] ${device.label || 'Unnamed'}`);
+                    Log.info(`      Device ID: ${device.deviceId}`);
+                });
+
+                Log.info("Audio Output Devices (Speakers):");
+                audioOutputs.forEach((device, index) => {
+                    Log.info(`  [${index}] ${device.label || 'Unnamed'}`);
+                    Log.info(`      Device ID: ${device.deviceId}`);
+                });
+
+                Log.info("================================");
+            })
+            .catch(err => {
+                Log.error("Error enumerating devices: " + err);
+            });
+    },
+
+    initializeMicrophone: function() {
+        // Request microphone access with specific device if configured
+        const constraints = {
+            audio: this.config.audioInputDeviceId ?
+                { deviceId: { exact: this.config.audioInputDeviceId } } :
+                true
+        };
+
+        return navigator.mediaDevices.getUserMedia(constraints)
+            .then(stream => {
+                Log.info("Microphone access granted");
+                if (this.config.audioInputDeviceId) {
+                    Log.info("Using microphone device: " + this.config.audioInputDeviceId);
+                }
+                // Stop the stream as we're just checking permissions
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            })
+            .catch(err => {
+                Log.error("Microphone access error: " + err);
+                return false;
+            });
     },
 
     suspend: function() {

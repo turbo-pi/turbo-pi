@@ -48,6 +48,29 @@
         animateText: true,
 
         // Microphone sensitivity (0.0-1.0)
-        sensitivity: 0.5
+        sensitivity: 0.5,
+
+        // ===== AUDIO DEVICE SELECTION =====
+        // To find device IDs:
+        // 1. Set debugAudioDevices to true and check browser console
+        // 2. Or run: node list-audio-devices.js
+        // 3. Or open Chrome DevTools and run: navigator.mediaDevices.enumerateDevices()
+
+        // Specific microphone device ID (null = use default)
+        // Example: "default" or "0abc123def456..."
+        audioInputDeviceId: null,
+
+        // Specific speaker device ID (null = use default)
+        // Note: Browser support for output device selection is limited
+        audioOutputDeviceId: null,
+
+        // Specific voice name for text-to-speech (null = use default)
+        // Examples: "Google Nederlands", "Microsoft David", "Samantha"
+        // To see available voices, set debugAudioDevices to true
+        voiceName: null,
+
+        // Show available audio devices and voices in browser console log
+        // Set to true to discover your device IDs and voice names
+        debugAudioDevices: false
     }
 }

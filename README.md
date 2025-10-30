@@ -3,7 +3,7 @@
 Een Magic Mirror² module voor spraakinteractie met ChatGPT, inclusief wake word detectie.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 
 ## Overzicht / Overview
 
@@ -21,6 +21,7 @@ This module enables voice interaction with your Magic Mirror using a wake word (
 - 💬 **Conversation History** - Maintains context across multiple exchanges
 - 🎨 **Customizable UI** - Configurable display with animations
 - 🌍 **Multi-language Support** - Works with any language supported by Web Speech API
+- 🎙️ **Audio Device Selection** - Choose specific microphone and voice for optimal quality
 - ⚙️ **Highly Configurable** - Many options to customize behavior
 
 ## Screenshots
@@ -92,6 +93,10 @@ Voeg de module toe aan je `config/config.js`:
 | `showResponse` | Boolean | true | Show ChatGPT response on screen |
 | `animateText` | Boolean | true | Animate the response text |
 | `sensitivity` | Number | 0.5 | Microphone sensitivity (0.0-1.0) |
+| `audioInputDeviceId` | String | null | Specific microphone device ID (null = default) |
+| `audioOutputDeviceId` | String | null | Specific speaker device ID (null = default) |
+| `voiceName` | String | null | Specific voice name for TTS (null = default) |
+| `debugAudioDevices` | Boolean | false | Log available audio devices in console |
 
 ## Usage / Gebruik
 
@@ -139,6 +144,131 @@ Deze module gebruikt de Web Speech API, die ondersteund wordt door:
 - ❌ Firefox (beperkte Speech Recognition ondersteuning)
 
 **Aanbeveling:** Gebruik Chromium voor de beste ervaring.
+
+## Audio Device Selection / Audio Apparaat Selectie
+
+### Waarom specifieke audio devices selecteren?
+
+Als je meerdere microfoons of speakers hebt (bijvoorbeeld een USB microfoon, webcam microfoon, ingebouwde microfoon, of externe speakers), wil je misschien een specifiek apparaat gebruiken voor de beste kwaliteit.
+
+### Methode 1: Automatisch detecteren met debug mode
+
+De eenvoudigste manier om beschikbare devices te vinden:
+
+1. Zet `debugAudioDevices: true` in je config:
+
+```javascript
+config: {
+    debugAudioDevices: true,
+    // ... andere opties
+}
+```
+
+2. Start Magic Mirror en open de browser console (F12)
+3. Zoek in de console naar "Available Audio Devices" en "Available voices"
+4. Kopieer de device ID of voice name die je wilt gebruiken
+
+### Methode 2: Via browser console
+
+Open de Chrome/Chromium developer console (F12) en voer uit:
+
+```javascript
+// Toon alle audio devices
+navigator.mediaDevices.enumerateDevices().then(devices => {
+  console.log("=== MICROPHONES ===");
+  devices.filter(d => d.kind === "audioinput").forEach(d => {
+    console.log(d.label);
+    console.log("  ID:", d.deviceId);
+  });
+
+  console.log("\n=== SPEAKERS ===");
+  devices.filter(d => d.kind === "audiooutput").forEach(d => {
+    console.log(d.label);
+    console.log("  ID:", d.deviceId);
+  });
+
+  console.log("\n=== VOICES ===");
+  speechSynthesis.getVoices().forEach(v => {
+    console.log(v.name, "(" + v.lang + ")");
+  });
+});
+```
+
+### Methode 3: Via helper script
+
+Voer het helper script uit om systeem audio devices te zien:
+
+```bash
+cd ~/MagicMirror/modules/MMM-ChatGPT
+node list-audio-devices.js
+```
+
+Dit toont alle beschikbare audio devices op je systeem.
+
+### Configuratie voorbeeld met specifieke devices
+
+```javascript
+{
+    module: "MMM-ChatGPT",
+    position: "top_center",
+    config: {
+        apiKey: "your-api-key",
+
+        // Gebruik een specifieke USB microfoon
+        audioInputDeviceId: "abc123def456...",
+
+        // Gebruik een specifieke stem voor text-to-speech
+        voiceName: "Google Nederlands",
+
+        // Of voor Engels:
+        // voiceName: "Google US English",
+
+        // Debug mode om devices te zien
+        debugAudioDevices: true
+    }
+}
+```
+
+### Populaire voice namen
+
+**Nederlands:**
+- "Google Nederlands" (Chrome)
+- "Microsoft David - Dutch (Netherlands)" (Edge)
+- "Xander" (macOS)
+
+**Engels:**
+- "Google US English" (Chrome)
+- "Google UK English Female" (Chrome)
+- "Microsoft David Desktop" (Edge)
+- "Samantha" (macOS)
+- "Alex" (macOS)
+
+### Belangrijke opmerkingen
+
+⚠️ **Web Speech API beperkingen:**
+- De Web Speech API heeft **geen directe ondersteuning** voor het selecteren van audio output (speaker) devices
+- `audioOutputDeviceId` is toegevoegd voor toekomstige browser ondersteuning, maar werkt momenteel **niet** in de meeste browsers
+- Voor microfoon selectie werkt het wel, maar de browser kan standaard devices overschrijven
+
+📝 **Alternatieve oplossingen voor speaker selectie:**
+
+1. **Systeem-level configuratie (Linux):**
+   ```bash
+   # Stel standaard output device in met PulseAudio
+   pactl set-default-sink <sink-name>
+
+   # Of via ALSA
+   aplay -D plughw:1,0  # Gebruik card 1, device 0
+   ```
+
+2. **Browser-level:**
+   - Chrome/Edge: Ga naar `chrome://settings/content/sound`
+   - Selecteer de gewenste audio output device als standaard
+
+3. **Desktop environment:**
+   - GNOME: Sound Settings → Output
+   - KDE: System Settings → Audio
+   - macOS: System Preferences → Sound → Output
 
 ## Troubleshooting
 
@@ -249,6 +379,15 @@ Voor vragen of problemen:
 
 ## Changelog
 
+### Version 1.1.0 (2024-10-30)
+- ✨ Added audio device selection support
+- ✨ Added custom voice selection for text-to-speech
+- ✨ Added microphone device ID configuration
+- ✨ Added debug mode to list available audio devices
+- ✨ Created helper script `list-audio-devices.js`
+- 📝 Comprehensive documentation for audio device configuration
+- 🔧 Improved voice loading with async support
+
 ### Version 1.0.0 (2024-10-30)
 - Initial release
 - Wake word detection
@@ -261,12 +400,13 @@ Voor vragen of problemen:
 
 - [ ] Offline wake word detection (Porcupine/Snowboy)
 - [ ] Multiple wake words
-- [ ] Custom voice selection
+- [x] ~~Custom voice selection~~ ✅ Implemented in v1.1.0
 - [ ] Integration with Magic Mirror modules (weather, calendar)
 - [ ] Emotion detection
 - [ ] Context awareness (time, location)
 - [ ] Voice command shortcuts
 - [ ] Multiple conversation contexts
+- [ ] Better speaker device selection (waiting for browser API support)
 
 ---
 
