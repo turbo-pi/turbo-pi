@@ -1,7 +1,7 @@
 {
   "name": "MMM-ChatGPT",
-  "version": "1.1.0",
-  "description": "A MagicMirror² module for voice interaction with ChatGPT using wake word detection",
+  "version": "2.0.0",
+  "description": "A MagicMirror² module for voice interaction with AI assistants (OpenAI, Ollama, LocalAI) using wake word detection. Optimized for Raspberry Pi CM4 Waveshare Magic Mirror.",
   "main": "MMM-ChatGPT.js",
   "author": "Claude",
   "license": "MIT",
@@ -10,10 +10,19 @@
     "smart mirror",
     "chatgpt",
     "openai",
+    "ollama",
+    "localai",
+    "llama",
+    "mistral",
     "voice",
     "wake word",
     "speech recognition",
-    "ai assistant"
+    "ai assistant",
+    "raspberry pi",
+    "cm4",
+    "waveshare",
+    "local ai",
+    "privacy"
   ],
   "repository": {
     "type": "git",

@@ -1,28 +1,106 @@
 # MMM-ChatGPT
 
-Een Magic Mirror² module voor spraakinteractie met ChatGPT, inclusief wake word detectie.
+Een Magic Mirror² module voor spraakinteractie met AI assistenten (ChatGPT, Ollama, LocalAI), inclusief wake word detectie.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
 
 ## Overzicht / Overview
 
 **Nederlands:**
-Deze module maakt het mogelijk om met je Magic Mirror te praten via een wake word (bijv. "hey mirror"). De mirror luistert continu naar het wake word en als het gedetecteerd wordt, kun je een vraag stellen die naar ChatGPT wordt gestuurd. Het antwoord wordt zowel getoond op het scherm als uitgesproken.
+Deze module maakt het mogelijk om met je Magic Mirror te praten via een wake word (bijv. "hey mirror"). De mirror luistert continu naar het wake word en als het gedetecteerd wordt, kun je een vraag stellen die naar een AI assistant wordt gestuurd. Ondersteunt zowel cloud-based (OpenAI) als lokale AI modellen (Ollama, LocalAI). Het antwoord wordt zowel getoond op het scherm als uitgesproken.
 
 **English:**
-This module enables voice interaction with your Magic Mirror using a wake word (e.g., "hey mirror"). The mirror continuously listens for the wake word, and when detected, you can ask a question that will be sent to ChatGPT. The response is both displayed on screen and spoken aloud.
+This module enables voice interaction with your Magic Mirror using a wake word (e.g., "hey mirror"). The mirror continuously listens for the wake word, and when detected, you can ask a question that will be sent to an AI assistant. Supports both cloud-based (OpenAI) and local AI models (Ollama, LocalAI). The response is both displayed on screen and spoken aloud.
 
-## Features / Functies
+## ✨ Features / Functies
 
 - 🎤 **Wake Word Detection** - Continuous listening for customizable wake word
-- 🤖 **ChatGPT Integration** - Powered by OpenAI's ChatGPT API
-- 🗣️ **Voice Response** - Text-to-speech for ChatGPT responses
+- 🤖 **Multiple AI Providers** - Support for OpenAI, Ollama (local), and LocalAI
+- 🆓 **Free Option** - Use local AI models with Ollama (no API costs!)
+- 🔒 **Privacy** - Run completely offline with local models
+- 🗣️ **Voice Response** - Text-to-speech for AI responses
 - 💬 **Conversation History** - Maintains context across multiple exchanges
 - 🎨 **Customizable UI** - Configurable display with animations
 - 🌍 **Multi-language Support** - Works with any language supported by Web Speech API
 - 🎙️ **Audio Device Selection** - Choose specific microphone and voice for optimal quality
+- 🖥️ **CM4 Optimized** - Hardware profiles for Raspberry Pi CM4 Waveshare Magic Mirror
 - ⚙️ **Highly Configurable** - Many options to customize behavior
+- 🛠️ **Diagnostic Tools** - Built-in audio testing and troubleshooting tools
+
+## 🆕 What's New in v2.0
+
+- **Multi-Provider Support**: Choose between OpenAI, Ollama, or LocalAI
+- **Local AI Models**: Run completely free with Ollama (Llama 2, Mistral, Phi, etc.)
+- **CM4 Hardware Profile**: Optimized configuration for Waveshare CM4 Magic Mirror
+- **Enhanced API Support**: Better error handling and timeout management
+- **Diagnostic Tools**: Audio testing webpage and system audio scripts
+- **Comprehensive Documentation**: CM4 setup guide and troubleshooting manual
+
+## 🤖 AI Provider Options
+
+Kies de AI backend die bij jou past:
+
+### Option 1: OpenAI (Cloud)
+
+**Best for:** Beste kwaliteit, snelste responses, geen lokale setup
+
+- ✅ GPT-4 en GPT-3.5-turbo modellen
+- ✅ Altijd beschikbaar en snel
+- ✅ Hoogste kwaliteit antwoorden
+- ❌ Kosten: ~€0.20-0.30/maand bij normaal gebruik
+- ❌ Internet vereist
+
+```javascript
+config: {
+    aiProvider: "openai",
+    apiKey: "sk-your-key-here",
+    model: "gpt-3.5-turbo"
+}
+```
+
+### Option 2: Ollama (Local - FREE!)
+
+**Best for:** Volledig gratis, privacy, offline gebruik
+
+- ✅ Volledig gratis
+- ✅ Werkt offline
+- ✅ Privacy - alles lokaal
+- ✅ Modellen: Llama 2, Mistral, Phi, Neural Chat
+- ❌ Langzamer (10-30 sec per vraag op CM4)
+- ❌ Vereist 4GB+ RAM
+
+```javascript
+config: {
+    aiProvider: "ollama",
+    ollamaUrl: "http://localhost:11434",
+    model: "phi"  // of "llama2", "mistral"
+}
+```
+
+**Setup:**
+```bash
+curl https://ollama.ai/install.sh | sh
+ollama pull phi
+ollama serve
+```
+
+### Option 3: LocalAI (Local OpenAI-compatible)
+
+**Best for:** Lokale OpenAI-compatible API
+
+- ✅ OpenAI API compatible
+- ✅ Meerdere model backends
+- ✅ Gratis en privacy-vriendelijk
+- ❌ Complex om in te stellen
+
+```javascript
+config: {
+    aiProvider: "localai",
+    localAIUrl: "http://localhost:8080",
+    model: "gpt-3.5-turbo"
+}
+```
 
 ## Screenshots
 
@@ -46,56 +124,125 @@ cd MMM-ChatGPT
 npm install
 ```
 
-### Stap 3: Verkrijg een OpenAI API Key
+### Stap 3: Kies en Setup je AI Provider
 
+**Voor OpenAI (Cloud):**
 1. Ga naar [OpenAI Platform](https://platform.openai.com/)
 2. Maak een account aan of log in
 3. Ga naar API Keys sectie
 4. Genereer een nieuwe API key
 5. Bewaar deze key veilig
 
+**Voor Ollama (Lokaal - Gratis):**
+```bash
+# Installeer Ollama:
+curl https://ollama.ai/install.sh | sh
+
+# Download een model (kies één):
+ollama pull phi         # Klein, snel (~2GB)
+ollama pull llama2      # Groter, beter (~4GB)
+ollama pull mistral     # Beste kwaliteit (~4GB)
+
+# Start Ollama server:
+ollama serve
+```
+
+**Voor LocalAI:**
+Zie [LocalAI documentatie](https://localai.io/basics/getting_started/)
+
 ### Stap 4: Configureer de Module
 
-Voeg de module toe aan je `config/config.js`:
+**Basic configuratie (OpenAI):**
 
 ```javascript
 {
     module: "MMM-ChatGPT",
-    position: "top_center", // Of elke andere positie
+    position: "top_center",
     config: {
+        aiProvider: "openai",
         apiKey: "YOUR_OPENAI_API_KEY_HERE",
-        wakeWord: "hey mirror",
         model: "gpt-3.5-turbo",
-        language: "nl-NL", // nl-NL voor Nederlands, en-US voor Engels
+        wakeWord: "hey mirror",
+        language: "nl-NL",
         voiceEnabled: true,
-        autoSpeak: true,
-        displayDuration: 30000,
-        maxTokens: 150,
-        temperature: 0.7
+        autoSpeak: true
     }
 }
 ```
 
+**Ollama configuratie (Gratis, lokaal):**
+
+```javascript
+{
+    module: "MMM-ChatGPT",
+    position: "top_center",
+    config: {
+        aiProvider: "ollama",
+        ollamaUrl: "http://localhost:11434",
+        model: "phi",
+        wakeWord: "hey mirror",
+        language: "nl-NL",
+        voiceEnabled: true,
+        timeout: 60000  // Langer timeout voor lokaal
+    }
+}
+```
+
+**Voor CM4 Waveshare hardware:**
+Zie `config.cm4-waveshare.js` voor geoptimaliseerde settings en `CM4-SETUP.md` voor complete setup guide.
+
 ## Configuration Options / Configuratie Opties
+
+### AI Provider Settings
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiKey` | String | **Required** | Your OpenAI API key |
+| `aiProvider` | String | "openai" | AI provider: "openai", "ollama", or "localai" |
+| `apiKey` | String | **Required for OpenAI** | Your OpenAI API key |
+| `model` | String | "gpt-3.5-turbo" | Model name (depends on provider) |
+| `apiEndpoint` | String | OpenAI default | Custom API endpoint (for Azure OpenAI, etc.) |
+| `ollamaUrl` | String | "http://localhost:11434" | Ollama server URL |
+| `localAIUrl` | String | "http://localhost:8080" | LocalAI server URL |
+| `timeout` | Number | 30000 | API request timeout in ms (use 60000 for local AI) |
+
+### Speech & Wake Word
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
 | `wakeWord` | String | "hey mirror" | The wake word to activate the module |
-| `model` | String | "gpt-3.5-turbo" | ChatGPT model to use (gpt-3.5-turbo, gpt-4, etc.) |
 | `language` | String | "nl-NL" | Language for speech recognition (nl-NL, en-US, de-DE, etc.) |
 | `voiceEnabled` | Boolean | true | Enable/disable voice output |
-| `autoSpeak` | Boolean | true | Automatically speak ChatGPT responses |
-| `displayDuration` | Number | 30000 | How long to display response (milliseconds, 0 = forever) |
-| `maxTokens` | Number | 150 | Maximum tokens in ChatGPT response |
-| `temperature` | Number | 0.7 | ChatGPT temperature (0.0-1.0, higher = more creative) |
-| `showTranscript` | Boolean | true | Show your spoken question on screen |
-| `showResponse` | Boolean | true | Show ChatGPT response on screen |
-| `animateText` | Boolean | true | Animate the response text |
+| `autoSpeak` | Boolean | true | Automatically speak AI responses |
+| `voiceName` | String | null | Specific voice name for TTS (e.g., "Google Nederlands") |
 | `sensitivity` | Number | 0.5 | Microphone sensitivity (0.0-1.0) |
+
+### AI Model Parameters
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxTokens` | Number | 150 | Maximum tokens in AI response |
+| `temperature` | Number | 0.7 | AI temperature (0.0-1.0, higher = more creative) |
+| `topP` | Number | 1.0 | Nucleus sampling parameter |
+| `frequencyPenalty` | Number | 0 | Reduce repetition (-2.0 to 2.0) |
+| `presencePenalty` | Number | 0 | Encourage new topics (-2.0 to 2.0) |
+| `systemPrompt` | String | Default | Custom system prompt for AI |
+| `historyLimit` | Number | 5 | Number of conversation exchanges to remember |
+
+### Display Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `displayDuration` | Number | 30000 | How long to display response (ms, 0 = forever) |
+| `showTranscript` | Boolean | true | Show your spoken question on screen |
+| `showResponse` | Boolean | true | Show AI response on screen |
+| `animateText` | Boolean | true | Animate the response text |
+
+### Audio Device Selection
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
 | `audioInputDeviceId` | String | null | Specific microphone device ID (null = default) |
-| `audioOutputDeviceId` | String | null | Specific speaker device ID (null = default) |
-| `voiceName` | String | null | Specific voice name for TTS (null = default) |
+| `audioOutputDeviceId` | String | null | Specific speaker device ID (null = default, limited support) |
 | `debugAudioDevices` | Boolean | false | Log available audio devices in console |
 
 ## Usage / Gebruik
@@ -379,6 +526,24 @@ Voor vragen of problemen:
 
 ## Changelog
 
+### Version 2.0.0 (2026-02-27) 🎉 **MAJOR UPDATE**
+- 🚀 **Multi-Provider Support**: Choose between OpenAI, Ollama, or LocalAI
+- 🆓 **Local AI Option**: Run completely free with Ollama (Llama 2, Mistral, Phi, etc.)
+- 🔒 **Privacy Mode**: Option to run completely offline with local models
+- 🖥️ **CM4 Hardware Profile**: Optimized configuration for Waveshare CM4 Magic Mirror
+- 📝 **CM4 Setup Guide**: Complete setup guide for CM4 hardware (CM4-SETUP.md)
+- 🛠️ **Enhanced Diagnostics**: Improved troubleshooting tools and error handling
+- ⚙️ **Advanced Configuration**: More AI model parameters (topP, penalties, systemPrompt)
+- 📖 **Better Documentation**: Expanded configuration examples and use cases
+- 🔧 **Improved Error Handling**: Better error messages and connection handling
+
+### Version 1.2.0 (2026-02-27)
+- 🛠️ **Diagnostic Tools**: Interactive audio test webpage (test-audio.html)
+- 🐚 **System Audio Script**: Shell script for system-level audio testing
+- 📖 **Troubleshooting Guide**: Comprehensive TROUBLESHOOTING.md with common issues
+- 🔍 **Better Debugging**: Enhanced debug output and logging
+- 📝 **Documentation Updates**: Improved README with more examples
+
 ### Version 1.1.0 (2024-10-30)
 - ✨ Added audio device selection support
 - ✨ Added custom voice selection for text-to-speech
@@ -398,14 +563,18 @@ Voor vragen of problemen:
 
 ## Roadmap / Toekomstige Features
 
+- [x] ~~Local AI support~~ ✅ Implemented in v2.0.0 (Ollama, LocalAI)
+- [x] ~~CM4 Waveshare optimization~~ ✅ Implemented in v2.0.0
+- [x] ~~Diagnostic tools~~ ✅ Implemented in v1.2.0
+- [x] ~~Custom voice selection~~ ✅ Implemented in v1.1.0
 - [ ] Offline wake word detection (Porcupine/Snowboy)
 - [ ] Multiple wake words
-- [x] ~~Custom voice selection~~ ✅ Implemented in v1.1.0
-- [ ] Integration with Magic Mirror modules (weather, calendar)
+- [ ] Integration with Magic Mirror modules (weather, calendar, news)
 - [ ] Emotion detection
-- [ ] Context awareness (time, location)
-- [ ] Voice command shortcuts
-- [ ] Multiple conversation contexts
+- [ ] Context awareness (time, location, Magic Mirror state)
+- [ ] Voice command shortcuts (direct actions without AI)
+- [ ] Multiple conversation contexts (separate history per topic)
+- [ ] Whisper integration for better speech recognition
 - [ ] Better speaker device selection (waiting for browser API support)
 
 ---
