@@ -97,6 +97,9 @@ npm install
 npm start
 ```
 
+**Complete Setup Guide:**
+📖 **See [OPENCLAW-SETUP.md](OPENCLAW-SETUP.md) for detailed installation instructions!**
+
 **Why OpenClaw?**
 - 🔄 Switch between AI providers without changing your Magic Mirror config
 - 🎛️ Central configuration for all your AI services
