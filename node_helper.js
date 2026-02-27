@@ -42,6 +42,9 @@ module.exports = NodeHelper.create({
             case "localai":
                 await this.sendToLocalAI(message, conversationHistory);
                 break;
+            case "openclaw":
+                await this.sendToOpenClaw(message, conversationHistory);
+                break;
             default:
                 this.sendSocketNotification("CHATGPT_ERROR", {
                     error: `Unknown AI provider: ${provider}`
@@ -177,6 +180,90 @@ module.exports = NodeHelper.create({
             this.handleAIResponse(response.data, conversationHistory, message);
         } catch (error) {
             this.handleAIError(error, "LocalAI");
+        }
+    },
+
+    /**
+     * OpenClaw (Self-hosted AI agent runtime)
+     * OpenClaw acts as a router to various LLM backends
+     */
+    sendToOpenClaw: async function(message, conversationHistory) {
+        try {
+            const messages = this.buildMessageArray(message, conversationHistory);
+
+            console.log("Sending to OpenClaw:", message);
+            console.log("Model:", this.config.model || "default");
+
+            const openClawUrl = this.config.openClawUrl || "http://localhost:3000";
+
+            // OpenClaw API endpoint (may vary based on version/setup)
+            const endpoint = this.config.openClawEndpoint || "/api/chat";
+
+            const requestData = {
+                messages: messages,
+                model: this.config.model,
+                max_tokens: this.config.maxTokens || 150,
+                temperature: this.config.temperature || 0.7,
+                stream: false
+            };
+
+            const headers = {
+                "Content-Type": "application/json"
+            };
+
+            // Optional: Add API key if OpenClaw instance requires authentication
+            if (this.config.openClawApiKey) {
+                headers["Authorization"] = `Bearer ${this.config.openClawApiKey}`;
+            }
+
+            console.log("OpenClaw endpoint:", `${openClawUrl}${endpoint}`);
+
+            const response = await axios.post(
+                `${openClawUrl}${endpoint}`,
+                requestData,
+                {
+                    headers: headers,
+                    timeout: this.config.timeout || 60000 // Longer timeout for agent processing
+                }
+            );
+
+            // Handle OpenClaw response format
+            // OpenClaw may return different formats depending on backend
+            if (response.data) {
+                // Try OpenAI-compatible format first
+                if (response.data.choices && response.data.choices.length > 0) {
+                    this.handleAIResponse(response.data, conversationHistory, message);
+                }
+                // Try direct message format
+                else if (response.data.message || response.data.response) {
+                    const formattedResponse = {
+                        choices: [{
+                            message: {
+                                content: response.data.message || response.data.response
+                            }
+                        }]
+                    };
+                    this.handleAIResponse(formattedResponse, conversationHistory, message);
+                }
+                // Try content field
+                else if (response.data.content) {
+                    const formattedResponse = {
+                        choices: [{
+                            message: {
+                                content: response.data.content
+                            }
+                        }]
+                    };
+                    this.handleAIResponse(formattedResponse, conversationHistory, message);
+                }
+                else {
+                    throw new Error("Invalid response format from OpenClaw");
+                }
+            } else {
+                throw new Error("Empty response from OpenClaw");
+            }
+        } catch (error) {
+            this.handleAIError(error, "OpenClaw");
         }
     },
 

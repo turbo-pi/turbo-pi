@@ -3,7 +3,7 @@
 Een Magic Mirror² module voor spraakinteractie met AI assistenten (ChatGPT, Ollama, LocalAI), inclusief wake word detectie.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
 
 ## Overzicht / Overview
 
@@ -16,9 +16,10 @@ This module enables voice interaction with your Magic Mirror using a wake word (
 ## ✨ Features / Functies
 
 - 🎤 **Wake Word Detection** - Continuous listening for customizable wake word
-- 🤖 **Multiple AI Providers** - Support for OpenAI, Ollama (local), and LocalAI
+- 🤖 **Multiple AI Providers** - Support for OpenAI, OpenClaw, Ollama, and LocalAI
+- ⭐ **OpenClaw Integration** - AI agent runtime with 50+ integrations (RECOMMENDED!)
 - 🆓 **Free Option** - Use local AI models with Ollama (no API costs!)
-- 🔒 **Privacy** - Run completely offline with local models
+- 🔒 **Privacy** - Run completely offline or self-hosted with OpenClaw/Ollama
 - 🗣️ **Voice Response** - Text-to-speech for AI responses
 - 💬 **Conversation History** - Maintains context across multiple exchanges
 - 🎨 **Customizable UI** - Configurable display with animations
@@ -28,9 +29,12 @@ This module enables voice interaction with your Magic Mirror using a wake word (
 - ⚙️ **Highly Configurable** - Many options to customize behavior
 - 🛠️ **Diagnostic Tools** - Built-in audio testing and troubleshooting tools
 
-## 🆕 What's New in v2.0
+## 🆕 What's New in v2.1
 
-- **Multi-Provider Support**: Choose between OpenAI, Ollama, or LocalAI
+- **OpenClaw Integration** ⭐: Support for OpenClaw AI agent runtime (recommended!)
+- **Flexible AI Routing**: Use OpenClaw to switch between Claude, GPT, DeepSeek, and more
+- **Enhanced Privacy**: Run fully self-hosted with OpenClaw or Ollama
+- **Multi-Provider Support**: Choose between OpenAI, OpenClaw, Ollama, or LocalAI
 - **Local AI Models**: Run completely free with Ollama (Llama 2, Mistral, Phi, etc.)
 - **CM4 Hardware Profile**: Optimized configuration for Waveshare CM4 Magic Mirror
 - **Enhanced API Support**: Better error handling and timeout management
@@ -59,7 +63,47 @@ config: {
 }
 ```
 
-### Option 2: Ollama (Local - FREE!)
+### Option 2: OpenClaw (AI Agent Runtime - RECOMMENDED!) ⭐
+
+**Best for:** Flexibiliteit, multiple LLM backends, zelf-hosted
+
+- ✅ Open-source AI agent runtime ([openclaw.ai](https://openclaw.ai))
+- ✅ Routes naar meerdere LLM backends (Claude, GPT, DeepSeek, etc.)
+- ✅ 50+ integraties (chat, smart home, productivity tools)
+- ✅ Zelf-hosted op je eigen machine
+- ✅ Privacy-vriendelijk en configureerbaar
+- ✅ Ideaal voor CM4 Waveshare Magic Mirror
+- ❌ Vereist initiële setup
+
+```javascript
+config: {
+    aiProvider: "openclaw",
+    openClawUrl: "http://localhost:3000",
+    model: "claude"  // of "gpt-4", "deepseek", etc.
+}
+```
+
+**Setup:**
+```bash
+# Clone OpenClaw repository
+git clone https://github.com/openclaw/openclaw
+cd openclaw
+
+# Install dependencies
+npm install
+
+# Configure your LLM backends in .env
+# Start OpenClaw server
+npm start
+```
+
+**Why OpenClaw?**
+- 🔄 Switch between AI providers without changing your Magic Mirror config
+- 🎛️ Central configuration for all your AI services
+- 🔒 All data stays on your machine
+- 🚀 One of the fastest-growing open-source AI projects (191k+ GitHub stars)
+
+### Option 3: Ollama (Local - FREE!)
 
 **Best for:** Volledig gratis, privacy, offline gebruik
 
@@ -85,7 +129,7 @@ ollama pull phi
 ollama serve
 ```
 
-### Option 3: LocalAI (Local OpenAI-compatible)
+### Option 4: LocalAI (Local OpenAI-compatible)
 
 **Best for:** Lokale OpenAI-compatible API
 
@@ -197,10 +241,13 @@ Zie `config.cm4-waveshare.js` voor geoptimaliseerde settings en `CM4-SETUP.md` v
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `aiProvider` | String | "openai" | AI provider: "openai", "ollama", or "localai" |
+| `aiProvider` | String | "openai" | AI provider: "openai", "openclaw", "ollama", or "localai" |
 | `apiKey` | String | **Required for OpenAI** | Your OpenAI API key |
 | `model` | String | "gpt-3.5-turbo" | Model name (depends on provider) |
 | `apiEndpoint` | String | OpenAI default | Custom API endpoint (for Azure OpenAI, etc.) |
+| `openClawUrl` | String | "http://localhost:3000" | OpenClaw server URL |
+| `openClawEndpoint` | String | "/api/chat" | OpenClaw API endpoint |
+| `openClawApiKey` | String | null | Optional OpenClaw API key for authentication |
 | `ollamaUrl` | String | "http://localhost:11434" | Ollama server URL |
 | `localAIUrl` | String | "http://localhost:8080" | LocalAI server URL |
 | `timeout` | Number | 30000 | API request timeout in ms (use 60000 for local AI) |
@@ -525,6 +572,15 @@ Voor vragen of problemen:
 3. Zie [Magic Mirror² Forum](https://forum.magicmirror.builders/)
 
 ## Changelog
+
+### Version 2.1.0 (2026-02-27) ⭐ **OPENCLAW SUPPORT**
+- 🤖 **OpenClaw Integration**: Support for OpenClaw AI agent runtime
+- 🔄 **AI Router**: Use OpenClaw to route between Claude, GPT, DeepSeek, and more
+- 🎛️ **Central Configuration**: Manage all LLM backends through OpenClaw
+- 🔒 **Enhanced Privacy**: Self-hosted AI agent with 50+ integrations
+- 📝 **Documentation**: Complete OpenClaw setup and configuration guide
+- ⚙️ **New Config Options**: openClawUrl, openClawEndpoint, openClawApiKey
+- 🖥️ **CM4 Optimized**: OpenClaw recommended for CM4 Waveshare Magic Mirror
 
 ### Version 2.0.0 (2026-02-27) 🎉 **MAJOR UPDATE**
 - 🚀 **Multi-Provider Support**: Choose between OpenAI, Ollama, or LocalAI

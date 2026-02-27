@@ -15,7 +15,7 @@
         // AI PROVIDER CONFIGURATION
         // ========================================
 
-        // Choose your AI provider: "openai", "ollama", or "localai"
+        // Choose your AI provider: "openai", "ollama", "localai", or "openclaw"
         aiProvider: "openai",
 
         // === OPENAI CONFIGURATION ===
@@ -43,6 +43,15 @@
         // aiProvider: "localai",
         // localAIUrl: "http://localhost:8080",
         // model: "gpt-3.5-turbo",  // Model name configured in LocalAI
+
+        // === OPENCLAW CONFIGURATION (AI Agent Runtime - IDEAL FOR CM4!) ===
+        // OpenClaw is an open-source AI agent that acts as a router to various LLMs
+        // Perfect for CM4: Runs locally, integrates with multiple AI backends
+        // Uncomment to use OpenClaw
+        // aiProvider: "openclaw",
+        // openClawUrl: "http://localhost:3000",
+        // openClawEndpoint: "/api/chat",
+        // model: "claude",  // or "gpt-4", "deepseek", etc. (configured in OpenClaw)
 
         // ========================================
         // WAKE WORD & SPEECH CONFIGURATION

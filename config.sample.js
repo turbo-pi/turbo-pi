@@ -11,7 +11,7 @@
     position: "top_center",
     config: {
         // ===== AI PROVIDER =====
-        // Choose your AI provider: "openai", "ollama", or "localai"
+        // Choose your AI provider: "openai", "ollama", "localai", or "openclaw"
         aiProvider: "openai",  // Default: OpenAI cloud API
 
         // ===== OPENAI CONFIGURATION =====
@@ -37,6 +37,15 @@
         // aiProvider: "localai",
         // localAIUrl: "http://localhost:8080",
         // model: "gpt-3.5-turbo",  // Model name configured in LocalAI
+
+        // ===== OPENCLAW CONFIGURATION (Self-hosted AI Agent Runtime) =====
+        // OpenClaw (openclaw.ai) is an open-source AI agent that routes to various LLMs
+        // Uncomment these lines to use OpenClaw
+        // aiProvider: "openclaw",
+        // openClawUrl: "http://localhost:3000",
+        // openClawEndpoint: "/api/chat",  // Default endpoint
+        // openClawApiKey: null,  // Optional: if your instance requires auth
+        // model: "claude",  // Model configured in OpenClaw (claude, gpt-4, etc.)
 
         // ===== WAKE WORD & SPEECH =====
         // The wake word to activate the module
@@ -141,10 +150,17 @@
  *    - Set: aiProvider: "localai", localAIUrl: "http://localhost:8080"
  *    - No API key needed!
  *
- * 4. CM4 WAVESHARE HARDWARE:
+ * 4. USING OPENCLAW (AI Agent Runtime - RECOMMENDED FOR CM4!):
+ *    - Install: See https://github.com/openclaw/openclaw
+ *    - Configure LLM backends (Claude, GPT, DeepSeek, etc.)
+ *    - Start OpenClaw server
+ *    - Set: aiProvider: "openclaw", openClawUrl: "http://localhost:3000"
+ *    - OpenClaw routes to your configured LLMs!
+ *
+ * 5. CM4 WAVESHARE HARDWARE:
  *    - See config.cm4-waveshare.js for optimized settings
  *
- * 5. TROUBLESHOOTING:
+ * 6. TROUBLESHOOTING:
  *    - Run: ./test-system-audio.sh
  *    - Open: chromium-browser test-audio.html
  *    - Read: TROUBLESHOOTING.md
