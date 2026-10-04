@@ -3,7 +3,7 @@
 #           + Sensirion SCD41 (CO2, temperatuur, vochtigheid) via I2C
 #
 # Pinnen komen uit de productafbeelding van de Waveshare-winkel (display CO5300,
-# touch CST820). SCD41 hangt aan de GPIO1/GPIO2-pinnen van de 12-pins header.
+# touch CST820). SCD41 hangt aan de GPIO1 (SCL) en GPIO2 (SDA)-pinnen van de 12-pins header.
 
 substitutions:
   name: co2-meter
@@ -25,9 +25,9 @@ substitutions:
   touch_int: GPIO6
   touch_reset: GPIO7
 
-  # --- SCD41 op de header: pin GPIO1 = SDA, GPIO2 = SCL ---
-  sensor_sda: GPIO1
-  sensor_scl: GPIO2
+  # --- SCD41 op de header: pin GPIO1 = SCL, GPIO2 = SDA ---
+  sensor_sda: GPIO2
+  sensor_scl: GPIO1
 
 esphome:
   name: ${name}

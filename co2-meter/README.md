@@ -12,12 +12,12 @@ ESPHome-firmware voor een CO2-meter met ronde AMOLED-display.
 
 Op de 12-pins SH1.0-header van het bord (volgorde volgens de productafbeelding: GND, VSYS, 3V3, GPIO0, GPIO1, GPIO2, SCL, SDA, USB_N, USB_P, TXD, RXD):
 
-| SCD41 | Header-pin | ESP32-S3 |
+| SCD41-pad (vierkante pad eerst) | Header-pin | ESP32-S3 |
 |-------|------------|----------|
-| VCC   | 3 (3V3)    | 3,3 V    |
 | GND   | 1 (GND)    | GND      |
-| SDA   | 5 (GPIO1)  | `sensor_sda` |
-| SCL   | 6 (GPIO2)  | `sensor_scl` |
+| VDD   | 3 (3V3)    | 3,3 V    |
+| SCL   | 5 (GPIO1)  | `sensor_scl` |
+| SDA   | 6 (GPIO2)  | `sensor_sda` |
 
 Display (CO5300) en touch (CST820) zitten al op het bord. Hun pinnen staan in `co2-meter.yaml`
 (LCD: CS 10, CLK 11, D0-D3 12-15, RESET 8, TE 9; touch: SDA 47, SCL 48, INT 6, RST 7).
