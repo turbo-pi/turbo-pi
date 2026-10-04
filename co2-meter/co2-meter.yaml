@@ -1,0 +1,203 @@
+# CO2-meter voor Home Assistant
+# Hardware: Waveshare ESP32-S3-Touch-AMOLED-1.32 (CO5300 QSPI, CST820 touch)
+#           + Sensirion SCD41 (CO2, temperatuur, vochtigheid) via I2C
+#
+# LET OP: de pinnen hieronder zijn NIET geverifieerd tegen het schema van de
+# 1.32"-variant. Controleer ze in de Waveshare-documentatie
+# (https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.32) voordat je flasht.
+
+substitutions:
+  name: co2-meter
+  friendly_name: CO2 Meter
+
+  # --- Display (QSPI, CO5300) -- CONTROLEER ---
+  lcd_cs: GPIO9
+  lcd_clk: GPIO10
+  lcd_d0: GPIO11
+  lcd_d1: GPIO12
+  lcd_d2: GPIO13
+  lcd_d3: GPIO14
+  lcd_reset: GPIO21
+
+  # --- Touch (CST820, eigen I2C-bus) -- CONTROLEER ---
+  touch_sda: GPIO47
+  touch_scl: GPIO48
+  touch_int: GPIO15
+  touch_reset: GPIO16
+
+  # --- SCD41 (externe I2C-bus op de header) -- kies twee vrije GPIO's ---
+  sensor_sda: GPIO17
+  sensor_scl: GPIO18
+
+  # CO2-drempels (ppm)
+  co2_ok: "800"
+  co2_warn: "1200"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${name} fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+i2c:
+  - id: bus_sensor
+    sda: ${sensor_sda}
+    scl: ${sensor_scl}
+    frequency: 100kHz
+  - id: bus_touch
+    sda: ${touch_sda}
+    scl: ${touch_scl}
+    frequency: 400kHz
+
+spi:
+  id: qspi_bus
+  type: quad
+  clk_pin: ${lcd_clk}
+  data_pins: [${lcd_d0}, ${lcd_d1}, ${lcd_d2}, ${lcd_d3}]
+
+sensor:
+  - platform: scd4x
+    i2c_id: bus_sensor
+    update_interval: 10s
+    # Meter op ~100 m hoogte; pas aan of zet op 0 en gebruik ambient pressure
+    altitude_compensation: 0m
+    automatic_self_calibration: true
+    co2:
+      id: co2_ppm
+      name: "CO2"
+    temperature:
+      id: temp_c
+      name: "Temperatuur"
+    humidity:
+      id: hum_pct
+      name: "Luchtvochtigheid"
+
+  - platform: wifi_signal
+    name: "WiFi signaal"
+    update_interval: 60s
+    entity_category: diagnostic
+
+# Handmatige kalibratie vanuit Home Assistant (buiten, 400 ppm)
+button:
+  - platform: template
+    name: "Kalibreer op 420 ppm"
+    entity_category: config
+    on_press:
+      - scd4x.perform_forced_calibration:
+          value: 420
+  - platform: restart
+    name: "Herstart"
+    entity_category: config
+
+output:
+  - platform: template
+    id: dummy_out
+    type: float
+    write_action: []
+
+light:
+  # Schermhelderheid regelbaar vanuit HA (AMOLED: lage helderheid spaart pixels)
+  - platform: monochromatic
+    name: "Scherm"
+    output: dummy_out
+    id: screen_light
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+    on_state:
+      - lambda: |-
+          id(amoled).set_brightness(id(screen_light).current_values.is_on()
+              ? id(screen_light).current_values.get_brightness() : 0.0f);
+
+display:
+  - platform: mipi_spi
+    id: amoled
+    model: CO5300
+    spi_id: qspi_bus
+    bus_mode: quad
+    dimensions:
+      width: 466
+      height: 466
+    cs_pin: ${lcd_cs}
+    reset_pin: ${lcd_reset}
+    update_interval: 5s
+    lambda: |-
+      const int cx = 233, cy = 233;
+      float co2 = id(co2_ppm).state;
+      auto bg = Color::BLACK;
+      Color accent = Color(0x2ECC71);               // groen
+      const char *label = "Goed";
+      if (std::isnan(co2)) { accent = Color(0x888888); label = "Opwarmen"; }
+      else if (co2 > ${co2_warn}) { accent = Color(0xE74C3C); label = "Ventileer!"; }
+      else if (co2 > ${co2_ok})   { accent = Color(0xF39C12); label = "Matig"; }
+
+      it.fill(bg);
+      // Ring die met CO2 meeloopt (0..2000 ppm)
+      float frac = std::isnan(co2) ? 0.0f : std::min(co2 / 2000.0f, 1.0f);
+      for (int a = 0; a < 360 * frac; a += 1) {
+        float r = a * M_PI / 180.0f - M_PI / 2;
+        for (int d = 0; d < 14; d++) {
+          it.draw_pixel_at(cx + (int)((226 - d) * cosf(r)),
+                           cy + (int)((226 - d) * sinf(r)), accent);
+        }
+      }
+      if (std::isnan(co2)) {
+        it.printf(cx, cy, id(font_big), accent, TextAlign::CENTER, "--");
+      } else {
+        it.printf(cx, cy - 20, id(font_big), Color::WHITE, TextAlign::CENTER, "%.0f", co2);
+      }
+      it.printf(cx, cy + 50, id(font_small), accent, TextAlign::CENTER, "ppm CO2 - %s", label);
+      it.printf(cx, cy + 110, id(font_small), Color(0xAAAAAA), TextAlign::CENTER,
+                "%.1f°C   %.0f%%", id(temp_c).state, id(hum_pct).state);
+
+touchscreen:
+  - platform: cst816
+    id: touch
+    i2c_id: bus_touch
+    interrupt_pin: ${touch_int}
+    reset_pin: ${touch_reset}
+    on_touch:
+      # Tik op het scherm: 30 s volle helderheid
+      - light.turn_on:
+          id: screen_light
+          brightness: 100%
+      - delay: 30s
+      - light.turn_on:
+          id: screen_light
+          brightness: 30%
+
+font:
+  - file: "gfonts://Roboto@700"
+    id: font_big
+    size: 110
+    glyphs: "0123456789-"
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 26
+    glyphs: " !%.°-0123456789ACGMOPVadeghilmnoprstuvwyz"
