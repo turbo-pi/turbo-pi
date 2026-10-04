@@ -29,13 +29,16 @@ substitutions:
   sensor_sda: GPIO17
   sensor_scl: GPIO18
 
-  # CO2-drempels (ppm)
-  co2_ok: "800"
-  co2_warn: "1200"
-
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
+  includes:
+    - ui.h
+  on_boot:
+    priority: -100
+    then:
+      - delay: 45s   # wacht op eerste SCD41-meting
+      - script.execute: record_history
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -80,7 +83,11 @@ spi:
   id: qspi_bus
   type: quad
   clk_pin: ${lcd_clk}
-  data_pins: [${lcd_d0}, ${lcd_d1}, ${lcd_d2}, ${lcd_d3}]
+  data_pins:
+    - ${lcd_d0}
+    - ${lcd_d1}
+    - ${lcd_d2}
+    - ${lcd_d3}
 
 sensor:
   - platform: scd4x
@@ -132,8 +139,33 @@ light:
     default_transition_length: 0s
     on_state:
       - lambda: |-
-          id(amoled).set_brightness(id(screen_light).current_values.is_on()
-              ? id(screen_light).current_values.get_brightness() : 0.0f);
+          auto &cv = id(screen_light).current_values;
+          float b = cv.is_on() ? cv.get_brightness() : 0.0f;
+          id(amoled).set_brightness((uint8_t) (b * 255));
+
+script:
+  # Historie voor de grafieken: elke 5 minuten een punt (12 uur = 144 punten)
+  - id: record_history
+    then:
+      - lambda: |-
+          ui::co2_hist.push(id(co2_ppm).state);
+          ui::temp_hist.push(id(temp_c).state);
+  # Scherm 30 s fel na aanraking, daarna gedimd (spaart het AMOLED-paneel)
+  - id: wake_screen
+    mode: restart
+    then:
+      - light.turn_on:
+          id: screen_light
+          brightness: 100%
+      - delay: 30s
+      - light.turn_on:
+          id: screen_light
+          brightness: 30%
+
+interval:
+  - interval: 5min
+    then:
+      - script.execute: record_history
 
 display:
   - platform: mipi_spi
@@ -147,34 +179,19 @@ display:
     cs_pin: ${lcd_cs}
     reset_pin: ${lcd_reset}
     update_interval: 5s
-    lambda: |-
-      const int cx = 233, cy = 233;
-      float co2 = id(co2_ppm).state;
-      auto bg = Color::BLACK;
-      Color accent = Color(0x2ECC71);               // groen
-      const char *label = "Goed";
-      if (std::isnan(co2)) { accent = Color(0x888888); label = "Opwarmen"; }
-      else if (co2 > ${co2_warn}) { accent = Color(0xE74C3C); label = "Ventileer!"; }
-      else if (co2 > ${co2_ok})   { accent = Color(0xF39C12); label = "Matig"; }
-
-      it.fill(bg);
-      // Ring die met CO2 meeloopt (0..2000 ppm)
-      float frac = std::isnan(co2) ? 0.0f : std::min(co2 / 2000.0f, 1.0f);
-      for (int a = 0; a < 360 * frac; a += 1) {
-        float r = a * M_PI / 180.0f - M_PI / 2;
-        for (int d = 0; d < 14; d++) {
-          it.draw_pixel_at(cx + (int)((226 - d) * cosf(r)),
-                           cy + (int)((226 - d) * sinf(r)), accent);
-        }
-      }
-      if (std::isnan(co2)) {
-        it.printf(cx, cy, id(font_big), accent, TextAlign::CENTER, "--");
-      } else {
-        it.printf(cx, cy - 20, id(font_big), Color::WHITE, TextAlign::CENTER, "%.0f", co2);
-      }
-      it.printf(cx, cy + 50, id(font_small), accent, TextAlign::CENTER, "ppm CO2 - %s", label);
-      it.printf(cx, cy + 110, id(font_small), Color(0xAAAAAA), TextAlign::CENTER,
-                "%.1f°C   %.0f%%", id(temp_c).state, id(hum_pct).state);
+    pages:
+      - id: page_overview
+        lambda: |-
+          ui::Fonts f{id(font_huge), id(font_big), id(font_med), id(font_small), id(font_tiny)};
+          ui::draw_overview(it, f, id(co2_ppm).state, id(temp_c).state, id(hum_pct).state);
+      - id: page_co2
+        lambda: |-
+          ui::Fonts f{id(font_huge), id(font_big), id(font_med), id(font_small), id(font_tiny)};
+          ui::draw_co2_page(it, f, id(co2_ppm).state);
+      - id: page_temp
+        lambda: |-
+          ui::Fonts f{id(font_huge), id(font_big), id(font_med), id(font_small), id(font_tiny)};
+          ui::draw_temp_page(it, f, id(temp_c).state);
 
 touchscreen:
   - platform: cst816
@@ -182,22 +199,34 @@ touchscreen:
     i2c_id: bus_touch
     interrupt_pin: ${touch_int}
     reset_pin: ${touch_reset}
-    on_touch:
-      # Tik op het scherm: 30 s volle helderheid
-      - light.turn_on:
-          id: screen_light
-          brightness: 100%
-      - delay: 30s
-      - light.turn_on:
-          id: screen_light
-          brightness: 30%
+    on_release:
+      # Gedimd scherm: eerste tik maakt het alleen wakker; daarna wisselt elke tik van pagina
+      - if:
+          condition:
+            lambda: 'return id(screen_light).current_values.get_brightness() > 0.5f;'
+          then:
+            - display.page.show_next: amoled
+            - component.update: amoled
+      - script.execute: wake_screen
 
 font:
   - file: "gfonts://Roboto@700"
-    id: font_big
-    size: 110
+    id: font_huge
+    size: 120
     glyphs: "0123456789-"
+  - file: "gfonts://Roboto@700"
+    id: font_big
+    size: 76
+    glyphs: "0123456789.-"
+  - file: "gfonts://Roboto@500"
+    id: font_med
+    size: 30
+    glyphs: &glyphs " !%()+,-./0123456789:°ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
   - file: "gfonts://Roboto"
     id: font_small
-    size: 26
-    glyphs: " !%.°-0123456789ACGMOPVadeghilmnoprstuvwyz"
+    size: 22
+    glyphs: *glyphs
+  - file: "gfonts://Roboto"
+    id: font_tiny
+    size: 18
+    glyphs: *glyphs

@@ -38,10 +38,19 @@ CO2, temperatuur, luchtvochtigheid, WiFi-signaal, schermhelderheid, knop
 "Kalibreer op 420 ppm" (alleen gebruiken na 3+ min buiten) en herstartknop.
 
 ## Gebruik
-- Display: grote CO2-waarde, kleurring (groen < 800, oranje < 1200, rood daarboven), temp/RV.
-- Tik op het scherm voor 30 s volle helderheid, daarna 30%.
+![Voorbeeld van de UI](preview.png)
+
+*(Voorbeeld gerenderd met een mock-display en een ander lettertype; op het apparaat gebruikt de firmware Roboto.)*
+
+- Drie pagina's, wisselen met een tik:
+  1. **Overzicht**: 270°-gauge met kleurverloop (groen, amber, rood) en streepjes bij 800 en 1200 ppm, grote CO2-waarde, status, temperatuur in °C en luchtvochtigheid.
+  2. **CO2-grafiek**: laatste 12 uur, lijn gekleurd op waarde, drempellijnen, min/gem/max.
+  3. **Temperatuurgrafiek**: laatste 12 uur in °C, automatische schaal, min/gem/max.
+- Is het scherm gedimd, dan maakt de eerste tik het alleen wakker (30 s volle helderheid, daarna 30%).
+- De historie staat in het RAM en begint na een herstart opnieuw (1 punt per 5 min).
+- Drempels, kleuren en layout staan in `ui.h`.
 - De SCD41 heeft ~5 s opwarmtijd en kalibreert zichzelf (ASC) na enkele dagen frisse lucht.
 - Plaats de sensor uit de buurt van de ESP32 en het display (warmte beïnvloedt temperatuur/RV).
 
 ## Niet getest
-Dit is niet op hardware of met `esphome config` gevalideerd.
+Niet op hardware of met `esphome config` gevalideerd. `ui.h` is wel gecompileerd tegen een mock van de display-API. Onzeker: of `mipi_spi` voor dit bord `set_brightness(uint8_t)` heeft (dimmen); zo niet, haal de `on_state`-regel bij de lamp weg.
