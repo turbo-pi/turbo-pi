@@ -2,32 +2,32 @@
 # Hardware: Waveshare ESP32-S3-Touch-AMOLED-1.32 (CO5300 QSPI, CST820 touch)
 #           + Sensirion SCD41 (CO2, temperatuur, vochtigheid) via I2C
 #
-# LET OP: de pinnen hieronder zijn NIET geverifieerd tegen het schema van de
-# 1.32"-variant. Controleer ze in de Waveshare-documentatie
-# (https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.32) voordat je flasht.
+# Pinnen komen uit de productafbeelding van de Waveshare-winkel (display CO5300,
+# touch CST820). SCD41 hangt aan de GPIO1/GPIO2-pinnen van de 12-pins header.
 
 substitutions:
   name: co2-meter
   friendly_name: CO2 Meter
 
-  # --- Display (QSPI, CO5300) -- CONTROLEER ---
-  lcd_cs: GPIO9
-  lcd_clk: GPIO10
-  lcd_d0: GPIO11
-  lcd_d1: GPIO12
-  lcd_d2: GPIO13
-  lcd_d3: GPIO14
-  lcd_reset: GPIO21
+  # --- Display (QSPI, CO5300) ---
+  lcd_cs: GPIO10
+  lcd_clk: GPIO11
+  lcd_d0: GPIO12
+  lcd_d1: GPIO13
+  lcd_d2: GPIO14
+  lcd_d3: GPIO15
+  lcd_reset: GPIO8
+  # LCD_TE = GPIO9 (tearing-signaal, niet gebruikt)
 
-  # --- Touch (CST820, eigen I2C-bus) -- CONTROLEER ---
+  # --- Touch (CST820; deelt I2C-bus met de audiocodec ES8311) ---
   touch_sda: GPIO47
   touch_scl: GPIO48
-  touch_int: GPIO15
-  touch_reset: GPIO16
+  touch_int: GPIO6
+  touch_reset: GPIO7
 
-  # --- SCD41 (externe I2C-bus op de header) -- kies twee vrije GPIO's ---
-  sensor_sda: GPIO17
-  sensor_scl: GPIO18
+  # --- SCD41 op de header: pin GPIO1 = SDA, GPIO2 = SCL ---
+  sensor_sda: GPIO1
+  sensor_scl: GPIO2
 
 esphome:
   name: ${name}
@@ -42,7 +42,7 @@ esphome:
 
 esp32:
   board: esp32-s3-devkitc-1
-  flash_size: 16MB
+  flash_size: 8MB
   framework:
     type: esp-idf
 

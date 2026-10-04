@@ -8,21 +8,22 @@ ESPHome-firmware voor een CO2-meter met ronde AMOLED-display.
   - De module met BME280/BME680 uit de advertentie is niet nodig; de SCD41 meet alles zelf.
 
 ## Bedrading SCD41
-| SCD41 | ESP32-S3 |
-|-------|----------|
-| VCC   | 3V3      |
-| GND   | GND      |
-| SDA   | `sensor_sda` (standaard GPIO17) |
-| SCL   | `sensor_scl` (standaard GPIO18) |
+![Bedradingsschema](wiring.png)
 
-Gebruik niet de I2C-pinnen van het touchpaneel; die hangen op een aparte bus.
+Op de 12-pins SH1.0-header van het bord (volgorde volgens de productafbeelding: GND, VSYS, 3V3, GPIO0, GPIO1, GPIO2, SCL, SDA, USB_N, USB_P, TXD, RXD):
 
-## Belangrijk: pinnen controleren
-Ik kon het schema van de 1.32"-variant niet inzien. De display- en touchpinnen in
-`co2-meter.yaml` (sectie `substitutions`) zijn gebaseerd op verwante Waveshare-boards en
-**moeten** worden gecontroleerd tegen
-<https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.32>. Heeft het bord een
-I/O-expander of aparte display-voeding, dan moet die ook worden aangestuurd.
+| SCD41 | Header-pin | ESP32-S3 |
+|-------|------------|----------|
+| VCC   | 3 (3V3)    | 3,3 V    |
+| GND   | 1 (GND)    | GND      |
+| SDA   | 5 (GPIO1)  | `sensor_sda` |
+| SCL   | 6 (GPIO2)  | `sensor_scl` |
+
+Display (CO5300) en touch (CST820) zitten al op het bord. Hun pinnen staan in `co2-meter.yaml`
+(LCD: CS 10, CLK 11, D0-D3 12-15, RESET 8, TE 9; touch: SDA 47, SCL 48, INT 6, RST 7).
+
+## Let op
+Controleer de pin-volgorde van je header/kabel op de zeefdruk van het bord. GPIO0 is de BOOT-knop, gebruik die niet.
 
 ## Installeren
 ```bash
