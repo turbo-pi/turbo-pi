@@ -5,12 +5,12 @@ Genereert twee onderdelen voor de Bambu P2S (of elke andere FDM-printer):
   - back_plate.stl  : achterplaat met standoffs, print met de buitenkant op het bed
 
 Gebruik:
-    pip install manifold3d trimesh numpy
+    pip install manifold3d trimesh numpy networkx lxml
     python co2_case.py
 
 Alle maten in mm. Pas de parameters hieronder aan en draai het script opnieuw.
-Assenstelsel (gezien van voren): X = breedte (rechts +), Y = hoogte (boven +),
-Z = diepte (voorkant op z=0, naar achteren +).
+Assenstelsel: X = breedte, Y = hoogte (boven +), Z = diepte (voorkant op z=0,
+naar achteren +). Let op: gezien van voren wijst +X naar links.
 """
 
 from pathlib import Path
@@ -29,23 +29,24 @@ DEPTH = 24.0  # diepte front shell (incl. voorplaat), achterplaat komt erachter
 # T-Display S3 (PCB) en display
 TD_PCB = (62.0, 26.0)  # lengte x breedte PCB
 TD_CLEAR = 0.6  # speling rondom in de pocket
-TD_WINDOW = (45.0, 24.0)  # schermopening (actief gebied ~42.7 x 22.7)
-TD_WINDOW_OFFSET = 4.0  # schermopening verschoven weg van de USB-kant
+TD_WINDOW = (43.5, 23.5)  # schermopening (actief gebied ~42.7 x 22.7)
+TD_WINDOW_OFFSET = -3.0  # beeldmidden t.o.v. PCB-midden, + = weg van USB (beeld begint ~6.5 mm van USB-rand)
 TD_FRAME_H = 5.0  # hoogte van de positioneerrand rond de PCB
 TD_BACK_Z = 8.5  # geschatte z van de achterkant van de PCB (vanaf voorkant behuizing)
-USB_SIDE = "right"  # "right" of "left", gezien van voren
+USB_SIDE = "left"  # "right" of "left", gezien van voren (left past bij rotation: 270)
 USB_CUT = (12.0, 7.0)  # USB-C opening (breedte y, hoogte z)
 USB_Z = 7.5  # midden van de USB-C opening in z
-BUTTON_D = 3.5  # gaten voor de knoppen BOOT en IO14
-BUTTON_FROM_USB = 4.5  # afstand knopcentrum tot USB-kant van de PCB
-BUTTON_FROM_MID = 9.0  # afstand knopcentrum tot hartlijn van de PCB
+BUTTON_D = 3.0  # gaten voor de knoppen BOOT en IO14
+BUTTON_FROM_USB = 3.5  # afstand knopcentrum tot USB-kant van de PCB
+BUTTON_FROM_MID = 9.5  # afstand knopcentrum tot hartlijn van de PCB
 
-# SCD30 (breakout-board)
+# SCD30: Seeed Grove SCD30 v1.0 (Grove-raster 20 mm), sensormodule naar voren,
+# Grove-connector naar de USB-kant
 SENS_PCB = (60.0, 40.0)  # lengte x breedte
 SENS_CLEAR = 1.0
 SENS_STANDOFF_H = 5.0
-SENS_HOLES = [(3.0, 3.0), (57.0, 3.0), (3.0, 37.0), (57.0, 37.0)]  # t.o.v. linksonder board
-SENS_HOLE_D = 2.2  # M2.5 zelftappend
+SENS_HOLES = [(10.0, 38.0), (50.0, 38.0), (2.0, 10.0), (58.0, 10.0)]  # t.o.v. board-hoek (x vanaf de kant weg van de USB), patroon is symmetrisch
+SENS_HOLE_D = 1.7  # M2 zelftappend
 
 # Schroeven behuizing (M3 zelftappend, 4x ~16 mm)
 BOSS_R = 3.5
@@ -62,17 +63,17 @@ DIVIDER = (SENS_COMP[1], SENS_COMP[1] + 2.0)
 TD_POCKET_Y0 = DIVIDER[1] + 1.0
 TD_POCKET = (TD_PCB[0] + TD_CLEAR, TD_PCB[1] + TD_CLEAR)
 H = TD_POCKET_Y0 + TD_POCKET[1] + 2 * BOSS_R + 3.0
-BOSS_C = WALL + BOSS_R
+BOSS_C = WALL + BOSS_R - 0.8  # iets in de wand, anders raken ze alleen tangentieel
 BOSSES = [(BOSS_C, BOSS_C), (W - BOSS_C, BOSS_C), (BOSS_C, H - BOSS_C), (W - BOSS_C, H - BOSS_C)]
 
-# display-pocket tegen de USB-wand (rechts); bij USB links wordt alles gespiegeld
+# display-pocket tegen de USB-wand (+X); bij USB rechts wordt alles gespiegeld
 TD_X1 = W - WALL - 0.5
 TD_X0 = TD_X1 - TD_POCKET[0]
 TD_YC = TD_POCKET_Y0 + TD_POCKET[1] / 2
 TD_XC = (TD_X0 + TD_X1) / 2
 WIN_XC = TD_XC - TD_WINDOW_OFFSET
 
-SENS_X0 = (W - SENS_PCB[0]) / 2
+SENS_X0 = 9.5  # ruimte aan de connectorkant voor de Grove-stekker
 SENS_Y0 = WALL + 2.0
 
 
@@ -137,7 +138,7 @@ def front_shell():
     cuts.append(
         Manifold.batch_hull(
             [
-                box(WIN_XC - ww / 2 - ch, TD_YC - wh / 2 - ch, -0.01, WIN_XC + ww / 2 + ch, TD_YC + wh / 2 + ch, 0.0),
+                box(WIN_XC - ww / 2 - ch, TD_YC - wh / 2 - ch, -1.0, WIN_XC + ww / 2 + ch, TD_YC + wh / 2 + ch, 0.0),
                 box(WIN_XC - ww / 2, TD_YC - wh / 2, ch, WIN_XC + ww / 2, TD_YC + wh / 2, FRONT + 0.01),
             ]
         )
@@ -146,7 +147,7 @@ def front_shell():
     bx = TD_X1 - TD_CLEAR / 2 - BUTTON_FROM_USB
     for dy in (-BUTTON_FROM_MID, BUTTON_FROM_MID):
         cuts.append(cyl(bx, TD_YC + dy, -1, FRONT + 2, BUTTON_D / 2))
-    # USB-C opening in de rechterwand
+    # USB-C opening in de wand aan de USB-kant (+X)
     uw, uh = USB_CUT
     r = uh / 2
     cuts.append(
@@ -226,7 +227,8 @@ def mirror_x(m):
 def main(out_dir=Path(__file__).parent / "stl"):
     out_dir.mkdir(exist_ok=True)
     shell, back = front_shell(), back_plate()
-    if USB_SIDE == "left":
+    # het basismodel heeft de USB aan +X = links gezien van voren
+    if USB_SIDE == "right":
         shell, back = mirror_x(shell), mirror_x(back)
 
     # printoriëntatie: shell met voorkant op het bed; achterplaat omgedraaid
@@ -241,6 +243,12 @@ def main(out_dir=Path(__file__).parent / "stl"):
 
     # assemblage voor controle
     to_trimesh(union([shell, back])).export(out_dir / "assembly_preview.stl")
+
+    # 3MF voor Bambu Studio: beide onderdelen naast elkaar op de plaat
+    scene = trimesh.Scene()
+    scene.add_geometry(to_trimesh(shell), node_name="front_shell", geom_name="front_shell")
+    scene.add_geometry(to_trimesh(back_print.translate([W + 10, 0, 0])), node_name="back_plate", geom_name="back_plate")
+    scene.export(out_dir / "co2_case.3mf")
     print(f"buitenmaat: {W:.1f} x {H:.1f} x {DEPTH + BACK:.1f} mm")
 
 
