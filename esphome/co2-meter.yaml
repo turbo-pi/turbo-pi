@@ -82,6 +82,7 @@ switch:
 
 binary_sensor:
   - platform: gpio # rechter knop (BOOT) wisselt van pagina
+    id: button_page
     pin:
       number: GPIO0
       inverted: true
@@ -90,6 +91,7 @@ binary_sensor:
       - display.page.show_next: main_display
       - component.update: main_display
   - platform: gpio # onderste knop: backlight aan/uit
+    id: button_backlight
     pin:
       number: GPIO14
       inverted: true
