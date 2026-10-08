@@ -73,13 +73,6 @@ light:
     id: backlight
     restore_mode: ALWAYS_ON
 
-# Display + LCD-voeding (GPIO15 moet hoog bij batterijgebruik)
-switch:
-  - platform: gpio
-    pin: GPIO15
-    id: lcd_power
-    restore_mode: ALWAYS_ON
-
 binary_sensor:
   - platform: gpio # rechter knop (BOOT) wisselt van pagina
     id: button_page
