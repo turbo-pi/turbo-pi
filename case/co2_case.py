@@ -27,18 +27,19 @@ CORNER_R = 4.0  # afronding buitenhoeken
 DEPTH = 24.0  # diepte front shell (incl. voorplaat), achterplaat komt erachter
 
 # T-Display S3 (PCB) en display
-TD_PCB = (62.0, 26.0)  # lengte x breedte PCB
-TD_CLEAR = 0.6  # speling rondom in de pocket
-TD_WINDOW = (43.5, 23.5)  # schermopening (actief gebied ~42.7 x 22.7)
-TD_WINDOW_OFFSET = 2.3  # beeldmidden t.o.v. PCB-midden, + = weg van USB (gemeten op foto van eerste print)
+TD_PCB = (56.5, 28.8)  # glas + frame (gemeten met schuifmaat), lengte x breedte
+TD_USB_EXT = 6.0  # PCB met USB-C steekt zoveel uit voorbij het frame aan de USB-kant
+TD_CLEAR = 0.5  # speling rondom in de pocket
+TD_WINDOW = (44.0, 24.0)  # schermopening (actief gebied ~42.7 x 22.7)
+TD_WINDOW_OFFSET = -0.5  # beeldmidden t.o.v. midden van het frame, + = weg van USB
 TD_FRAME_H = 5.0  # hoogte van de positioneerrand rond de PCB
 TD_BACK_Z = 8.5  # geschatte z van de achterkant van de PCB (vanaf voorkant behuizing)
 USB_SIDE = "left"  # "right" of "left", gezien van voren (left past bij rotation: 270)
 USB_CUT = (12.0, 7.0)  # USB-C opening (breedte y, hoogte z)
 USB_Z = 7.5  # midden van de USB-C opening in z
-BUTTON_D = 3.0  # gaten voor de knoppen BOOT en IO14
-BUTTON_FROM_USB = 3.5  # afstand knopcentrum tot USB-kant van de PCB
-BUTTON_FROM_MID = 9.5  # afstand knopcentrum tot hartlijn van de PCB
+BUTTON_D = 4.0  # gaten voor de knoppen BOOT en IO14
+BUTTON_BEYOND_FRAME = 3.5  # knopcentrum voorbij het frame, richting USB
+BUTTON_FROM_MID = 10.0  # afstand knopcentrum tot hartlijn van de PCB
 
 # SCD30: Seeed Grove SCD30 v1.0 (Grove-raster 20 mm), sensormodule naar voren,
 # Grove-connector naar de USB-kant
@@ -67,7 +68,7 @@ BOSS_C = WALL + BOSS_R - 0.8  # iets in de wand, anders raken ze alleen tangenti
 BOSSES = [(BOSS_C, BOSS_C), (W - BOSS_C, BOSS_C), (BOSS_C, H - BOSS_C), (W - BOSS_C, H - BOSS_C)]
 
 # display-pocket tegen de USB-wand (+X); bij USB rechts wordt alles gespiegeld
-TD_X1 = W - WALL - 0.5
+TD_X1 = W - WALL - 0.5 - TD_USB_EXT  # USB-kant van het frame
 TD_X0 = TD_X1 - TD_POCKET[0]
 TD_YC = TD_POCKET_Y0 + TD_POCKET[1] / 2
 TD_XC = (TD_X0 + TD_X1) / 2
@@ -117,13 +118,13 @@ def front_shell():
         adds.append(cyl(x, y, FRONT, DEPTH - FRONT, BOSS_R))
     # scheidingswand tussen sensor (koel) en ESP32 (warm)
     adds.append(box(WALL, DIVIDER[0], FRONT, W - WALL, DIVIDER[1], DEPTH))
-    # positioneerrand rond de T-Display PCB (open aan de USB-kant)
+    # positioneerrand rond het glas/frame van de T-Display (open aan de USB-kant)
     t = 1.2
     y0, y1 = TD_POCKET_Y0, TD_POCKET_Y0 + TD_POCKET[1]
     z1 = FRONT + TD_FRAME_H
     adds += [
-        box(TD_X0 - t, y0 - t, FRONT, TD_X1 - 6, y0, z1),
-        box(TD_X0 - t, y1, FRONT, TD_X1 - 6, y1 + t, z1),
+        box(TD_X0 - t, y0 - t, FRONT, TD_X1, y0, z1),
+        box(TD_X0 - t, y1, FRONT, TD_X1, y1 + t, z1),
         box(TD_X0 - t, y0 - t, FRONT, TD_X0, y1 + t, z1),
     ]
     shell = union([shell] + adds)
@@ -144,7 +145,7 @@ def front_shell():
         )
     )
     # knoppen
-    bx = TD_X1 - TD_CLEAR / 2 - BUTTON_FROM_USB
+    bx = TD_X1 + BUTTON_BEYOND_FRAME
     for dy in (-BUTTON_FROM_MID, BUTTON_FROM_MID):
         cuts.append(cyl(bx, TD_YC + dy, -1, FRONT + 2, BUTTON_D / 2))
     # USB-C opening in de wand aan de USB-kant (+X)
