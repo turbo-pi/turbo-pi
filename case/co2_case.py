@@ -30,7 +30,7 @@ DEPTH = 24.0  # diepte front shell (incl. voorplaat), achterplaat komt erachter
 TD_PCB = (62.0, 26.0)  # lengte x breedte PCB
 TD_CLEAR = 0.6  # speling rondom in de pocket
 TD_WINDOW = (43.5, 23.5)  # schermopening (actief gebied ~42.7 x 22.7)
-TD_WINDOW_OFFSET = -3.0  # beeldmidden t.o.v. PCB-midden, + = weg van USB (beeld begint ~6.5 mm van USB-rand)
+TD_WINDOW_OFFSET = 2.3  # beeldmidden t.o.v. PCB-midden, + = weg van USB (gemeten op foto van eerste print)
 TD_FRAME_H = 5.0  # hoogte van de positioneerrand rond de PCB
 TD_BACK_Z = 8.5  # geschatte z van de achterkant van de PCB (vanaf voorkant behuizing)
 USB_SIDE = "left"  # "right" of "left", gezien van voren (left past bij rotation: 270)
